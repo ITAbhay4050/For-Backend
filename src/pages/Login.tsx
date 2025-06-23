@@ -2,24 +2,26 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext'; // ✅ IMPORT
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { setUser } = useAuth(); // ✅ Get setUser from context
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
       toast({
-        title: "Validation Error",
-        description: "Please enter both email and password.",
-        variant: "destructive",
+        title: 'Validation Error',
+        description: 'Please enter both email and password.',
+        variant: 'destructive',
       });
       return;
     }
@@ -38,59 +40,45 @@ const Login = () => {
 
       if (response.ok) {
         toast({
-          title: "Login Successful",
+          title: 'Login Successful',
           description: `Logged in as ${data.user_type}`,
         });
 
-        // Redirect based on user_type
-        if (data.user_type === 'dealer') {
-          navigate('/dealer/dashboard');
-        } else if (data.user_type === 'company') {
-          navigate('/company/dashboard');
-        } else {
-          navigate('/dashboard'); // fallback
-        }
+        // ✅ Save user globally
+        const role =
+          data.user_type === 'dealer' ? 'DEALER_ADMIN' :
+          data.user_type === 'company' ? 'COMPANY_ADMIN' :
+          'UNKNOWN';
 
+        setUser({
+          email: email,
+          role: role,
+          companyId: data.company_id || null, // if your backend sends it
+        });
+
+        // ✅ Redirect based on role
+        if (data.user_type === 'dealer') {
+          navigate('/dashboard');
+        } else if (data.user_type === 'company') {
+          navigate('/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         toast({
-          title: "Login Failed",
-          description: data.message || "Invalid email or password",
-          variant: "destructive",
+          title: 'Login Failed',
+          description: data.message || 'Invalid email or password',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Server error occurred. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Server error occurred. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const fillCredentials = (role: string) => {
-    switch (role) {
-      case 'admin':
-        setEmail('admin@system.com');
-        setPassword('password');
-        break;
-      case 'company_admin':
-        setEmail('admin@company.com');
-        setPassword('password');
-        break;
-      case 'company_employee':
-        setEmail('employee@company.com');
-        setPassword('password');
-        break;
-      case 'dealer_admin':
-        setEmail('admin@dealer.com');
-        setPassword('password');
-        break;
-      case 'dealer_employee':
-        setEmail('employee@dealer.com');
-        setPassword('password');
-        break;
     }
   };
 
@@ -128,45 +116,17 @@ const Login = () => {
                   required
                 />
               </div>
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isSubmitting}
-              >
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
-
-            <div className="mt-4">
-              <p className="text-center text-sm text-muted-foreground mb-2">
-                Don't have an account? <Link to="/dealerregister" className="text-blue-600 hover:underline">Register</Link>
+            <div className="mt-4 text-center text-sm">
+              <p>
+                Don't have an account? <Link to="/dealerregister" className="text-blue-600">Register</Link>
               </p>
-              <p className="text-center text-sm text-muted-foreground mb-2">
-                Create Company? <Link to="/register" className="text-blue-600 hover:underline">Create Company</Link>
+              <p>
+                Create Company? <Link to="/register" className="text-blue-600">Create Company</Link>
               </p>
-
-              <div className="border-t pt-4 mt-4">
-                <p className="text-center text-sm text-muted-foreground mb-2">
-                  Demo Accounts (Click to fill):
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  <Button variant="outline" size="sm" onClick={() => fillCredentials('admin')} type="button">
-                    System Admin
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => fillCredentials('company_admin')} type="button">
-                    Company Admin
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => fillCredentials('company_employee')} type="button">
-                    Company Employee
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => fillCredentials('dealer_admin')} type="button">
-                    Dealer Admin
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => fillCredentials('dealer_employee')} type="button">
-                    Dealer Employee
-                  </Button>
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>

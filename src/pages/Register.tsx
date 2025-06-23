@@ -36,58 +36,65 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!email || !password) {
-    toast({
-      title: "Error",
-      description: "Please enter both email and password",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  setIsSubmitting(true);
-
-  try {
-    const response = await fetch('http://127.0.0.1:8000/api/login/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
+    if (formData.newPassword !== formData.confirmPassword) {
       toast({
-        title: "Login Successful",
-        description: `Logged in as ${data.user_type}`,
+        title: 'Password Mismatch',
+        description: 'New password and confirm password do not match.',
+        variant: 'destructive',
       });
-
-      // Save user type and redirect
-      localStorage.setItem('user_type', data.user_type);
-      localStorage.setItem('user_email', email);
-
-      // Navigate to dashboard or conditional path
-      navigate('/dashboard');
-    } else {
-      toast({
-        title: "Login Failed",
-        description: data.message || "Invalid credentials",
-        variant: "destructive",
-      });
+      return;
     }
-  } catch (error) {
-    toast({
-      title: "Server Error",
-      description: "Server error occurred. Please try again.",
-      variant: "destructive",
-    });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/register/company/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          contact_person: formData.contact_person,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          country: formData.country,
+          pin_code: formData.pin_code,
+          contact_phone: formData.contact_phone,
+          contact_email: formData.contact_email,
+          gst_no: formData.gst_no,
+          pan_no: formData.pan_no,
+          password: formData.newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: 'Registration Successful',
+          description: 'Your company has been registered successfully.',
+        });
+        navigate('/login');
+      } else {
+        toast({
+          title: 'Registration Failed',
+          description: data.message || 'Something went wrong. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Server Error',
+        description: 'Unable to register. Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 px-4 py-8 animate-fade-in">

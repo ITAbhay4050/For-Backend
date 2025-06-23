@@ -451,6 +451,7 @@ const Dealers = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                
                 {filteredDealers.map((dealer) => (
                   <TableRow key={dealer.id}>
                     <TableCell className="font-medium">

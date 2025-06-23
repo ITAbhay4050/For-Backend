@@ -3,7 +3,7 @@ from .models import Company, Dealer , LoginRecord
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ('name', 'contact_person', 'city', 'state', 'country', 'gst_no', 'created_at')
+    list_display = ('name', 'contact_person', 'city', 'state', 'country', 'gst_no', 'created_at','contact_email')
     search_fields = ('name', 'gst_no', 'contact_email')
 
 @admin.register(Dealer)
