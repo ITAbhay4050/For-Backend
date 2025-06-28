@@ -67,7 +67,7 @@ const Dealers = () => {
       setError(null);
 
       // dealers
-      const dealerRes = await fetch("http://127.0.0.1:8000/api/dealers/", {
+      const dealerRes = await fetch("http://127.0.0.1:8000/api/register/dealer/", {
         headers: authHeader(),
       });
       if (!dealerRes.ok) throw new Error("Could not fetch dealers");

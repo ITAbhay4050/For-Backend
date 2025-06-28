@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Company, Dealer , LoginRecord
+from .models import Company, Dealer , LoginRecord ,MachineInstallation
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
@@ -17,3 +17,6 @@ class LoginRecordAdmin(admin.ModelAdmin):
     list_display = ('email', 'user_type', 'login_time', 'success')
     list_filter = ('user_type', 'success')
     search_fields = ('email',)
+@admin.register(MachineInstallation)
+class MachineInstallationAdmin(admin.ModelAdmin):
+    list_display = ['model_number', 'serial_number', 'installation_date', 'submitted_by_name']

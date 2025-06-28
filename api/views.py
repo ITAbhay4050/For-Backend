@@ -3,16 +3,17 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-
+from rest_framework.decorators import api_view, parser_classes
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import User as AuthUser
 from django.core.mail import send_mail
 from django.core.cache import cache
 from rest_framework.permissions import AllowAny 
 
-from .serializers import CompanySerializer, DealerSerializer
+from .serializers import CompanySerializer, DealerSerializer,MachineInstallationSerializer
 from .models import Company, Dealer, LoginRecord
 from .utils import generate_otp, send_otp_email
 
@@ -195,3 +196,14 @@ class DealerCountView(APIView):
         company_id = request.query_params.get("company_id")
         count = Dealer.objects.filter(company_id=company_id).count() if company_id else Dealer.objects.count()
         return Response({"dealer_count": count})
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def create_machine_installation(request):
+    serializer = MachineInstallationSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            "message": "Installation saved successfully",
+            "data": serializer.data
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

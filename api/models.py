@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.hashers import make_password
 
+
 class Company(models.Model):
     gst_no = models.CharField(max_length=20)
     name = models.CharField(max_length=255)
@@ -57,3 +58,38 @@ class LoginRecord(models.Model):
 
     def __str__(self):
         return f"{self.email} - {self.user_type} - {'Success' if self.success else 'Failed'}"
+
+
+class MachineInstallation(models.Model):
+    # Related parties
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
+    dealer = models.ForeignKey(Dealer, on_delete=models.CASCADE, null=True, blank=True)
+    
+    # Machine Info
+    model_number = models.CharField(max_length=100)
+    serial_number = models.CharField(max_length=100, unique=True)
+    batch_number = models.CharField(max_length=100, blank=True, null=True)
+    invoice_number = models.CharField(max_length=100, blank=True, null=True)
+
+    # Client Info (for company users)
+    client_company_name = models.CharField(max_length=255, blank=True, null=True)
+    client_gst_number = models.CharField(max_length=30, blank=True, null=True)
+    client_contact_person = models.CharField(max_length=100, blank=True, null=True)
+    client_contact_phone = models.CharField(max_length=20, blank=True, null=True)
+
+    # Installation
+    installation_date = models.DateField()
+    installed_by = models.CharField(max_length=100)
+    location = models.TextField()
+    notes = models.TextField(blank=True, null=True)
+    # Metadata
+    submitted_by_id = models.CharField(max_length=100)
+    submitted_by_role = models.CharField(max_length=100)
+    submitted_by_name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Installation: {self.model_number} - {self.serial_number}"
+class InstallationPhoto(models.Model):
+    installation = models.ForeignKey(MachineInstallation, on_delete=models.CASCADE, related_name="photo_set")
+    photo = models.ImageField(upload_to="Machine_install/")  

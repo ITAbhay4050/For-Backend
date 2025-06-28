@@ -2,28 +2,30 @@ import { useState } from "react";
 import DashboardLayout from "@/components/Layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import { Task, UserRole } from "@/types";
+
+/* ---------- UI components (split imports) ---------- */
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Input,
-  Badge,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Label,
-  Textarea,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui";
+} from "@/components/ui/select";
+
 import {
   Plus,
   Search,
@@ -35,9 +37,9 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
-/* ------------------------------------------------------------------------ */
-/*  Helpers                                                                 */
-/* ------------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                           */
+/* ------------------------------------------------------------------ */
 
 const generateId = () => Date.now().toString();
 
@@ -54,12 +56,13 @@ const PriorityBadge = ({ p }: { p: Task["priority"] }) => {
 
 /** Status badge */
 const StatusBadge = ({ s }: { s: Task["status"] }) => {
-  const shared =
-    "flex items-center gap-1 border-amber-300 bg-amber-100 text-amber-800";
   switch (s) {
     case "pending":
       return (
-        <Badge variant="outline" className={shared}>
+        <Badge
+          variant="outline"
+          className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300"
+        >
           <Clock className="h-3 w-3" />
           Pending
         </Badge>
@@ -99,14 +102,14 @@ const StatusBadge = ({ s }: { s: Task["status"] }) => {
   }
 };
 
-/* ------------------------------------------------------------------------ */
-/*  Component                                                               */
-/* ------------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
 
 const Tasks = () => {
   const { user } = useAuth();
 
-  /* ------------------------ state ------------------------ */
+  /* ------------------------- state ------------------------- */
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: "1",
@@ -170,13 +173,14 @@ const Tasks = () => {
     assignerId: user?.id,
   });
 
-  /* ------------------------ helpers ------------------------ */
+  /* --------------------- permissions --------------------- */
   const canAssign =
     user?.role === UserRole.APPLICATION_ADMIN ||
     user?.role === UserRole.COMPANY_ADMIN ||
     user?.role === UserRole.DEALER_ADMIN ||
     user?.role === UserRole.COMPANY_EMPLOYEE;
 
+  /* --------------------- filtering ----------------------- */
   const visibleTasks = tasks.filter((t) => {
     const matchesSearch =
       t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -199,6 +203,7 @@ const Tasks = () => {
     return matchesSearch && matchesStatus;
   });
 
+  /* -------------------- create task ---------------------- */
   const handleCreate = () => {
     if (!draft.title || !draft.description || !draft.assigneeId) {
       toast({
@@ -226,7 +231,7 @@ const Tasks = () => {
     });
   };
 
-  /* ------------------------ JSX ------------------------ */
+  /* ------------------------- JSX ------------------------- */
   return (
     <DashboardLayout>
       <div className="space-y-4">
@@ -415,8 +420,16 @@ const Tasks = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {[
-                      { id: "3", name: "Company Employee", role: "COMPANY_EMPLOYEE" },
-                      { id: "5", name: "Dealer Employee", role: "DEALER_EMPLOYEE" },
+                      {
+                        id: "3",
+                        name: "Company Employee",
+                        role: "COMPANY_EMPLOYEE",
+                      },
+                      {
+                        id: "5",
+                        name: "Dealer Employee",
+                        role: "DEALER_EMPLOYEE",
+                      },
                     ].map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.name} ({u.role.replace("_", " ")})

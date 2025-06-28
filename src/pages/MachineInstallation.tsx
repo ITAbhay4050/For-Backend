@@ -2,12 +2,8 @@ import { useState } from "react";
 import DashboardLayout from "@/components/Layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardFooter,
+  CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,18 +12,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { UserRole } from "@/types";
 import { useNavigate } from "react-router-dom";
-import {
-  CheckCircle2,
-  AlertTriangle,
-  Upload,
-  X,
-} from "lucide-react";
+import { CheckCircle2, AlertTriangle, Upload, X } from "lucide-react";
 import PurchaseVerification from "@/components/MachineInstallation/PurchaseVerification";
 
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
-
 type PurchasedMachine = {
   id: string;
   model: string;
@@ -42,7 +32,6 @@ type PurchasedMachine = {
 // -----------------------------------------------------------------------------
 // Component
 // -----------------------------------------------------------------------------
-
 export default function MachineInstallation() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -62,12 +51,10 @@ export default function MachineInstallation() {
   // State ---------------------------------------------------------------------
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
-  const [selectedMachine, setSelectedMachine] = useState<PurchasedMachine | null>(
-    null
-  );
+  const [selectedMachine, setSelectedMachine] = useState<PurchasedMachine | null>(null);
   const [formData, setFormData] = useState({
     installationDate: new Date().toISOString().split("T")[0],
-    installedBy: user?.name || "",
+    installedBy: user?.name || "Unknown Installer",
     // Company‑side (client) info
     clientCompanyName: "",
     clientGstNumber: "",
@@ -84,7 +71,6 @@ export default function MachineInstallation() {
   // ---------------------------------------------------------------------------
   // Handlers
   // ---------------------------------------------------------------------------
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -94,9 +80,7 @@ export default function MachineInstallation() {
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const valid = files.filter((f) =>
-      ["image/jpeg", "image/png"].includes(f.type)
-    );
+    const valid = files.filter((f) => ["image/jpeg", "image/png"].includes(f.type));
     if (valid.length !== files.length) {
       toast({
         title: "Warning",
@@ -113,104 +97,154 @@ export default function MachineInstallation() {
   const handleMachineSelected = (machine: PurchasedMachine) =>
     setSelectedMachine(machine);
 
-  const validateUniqueSerialNumber = (serial: string) => {
-    // Placeholder – check against DB in real impl.
-    const existing = ["ABC123", "XYZ789"];
-    return !existing.includes(serial);
+  const validateUniqueSerialNumber = async (serial: string) => {
+    /* TODO: hit an API to ensure uniqueness on server side.
+       For now always returns true. */
+    return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // ---------------------------------------------------------------------------
+  // Submit
+  // ---------------------------------------------------------------------------
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    // Dealer-side must select machine
-    if (isDealerSide && !selectedMachine) {
+  // Dealer-side must select machine
+  if (isDealerSide && !selectedMachine) {
+    toast({
+      title: "Error",
+      description: "Please select a machine from your purchase records",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // Company‑side required fields
+  if (!isDealerSide) {
+    const requiredFields = [
+      "clientCompanyName",
+      "clientGstNumber",
+      "clientContactPerson",
+      "clientContactPhone",
+      "modelNumber",
+      "serialNumber",
+    ];
+    const empty = requiredFields.find(
+      (f) => !formData[f as keyof typeof formData]
+    );
+    if (empty) {
       toast({
         title: "Error",
-        description: "Please select a machine from your purchase records",
+        description: "Please fill all required fields",
         variant: "destructive",
       });
       return;
     }
-
-    // Company‑side required fields
-    if (!isDealerSide) {
-      const requiredFields = [
-        "clientCompanyName",
-        "clientGstNumber",
-        "clientContactPerson",
-        "clientContactPhone",
-        "modelNumber",
-        "serialNumber",
-      ];
-      const empty = requiredFields.find((f) => !formData[f as keyof typeof formData]);
-      if (empty) {
-        toast({
-          title: "Error",
-          description: "Please fill all required fields",
-          variant: "destructive",
-        });
-        return;
-      }
-      // Unique serial number validation
-      if (!validateUniqueSerialNumber(formData.serialNumber)) {
-        toast({
-          title: "Error",
-          description: "Machine serial number already exists",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    // Shared required field
-    if (!formData.location) {
+    if (!(await validateUniqueSerialNumber(formData.serialNumber))) {
       toast({
         title: "Error",
-        description: "Please provide installation location",
+        description: "Machine serial number already exists",
         variant: "destructive",
       });
       return;
     }
+  }
 
-    // -----------------------------------------------------------------------
-    setIsSubmitting(true);
+  if (!formData.location) {
+    toast({
+      title: "Error",
+      description: "Please provide installation location",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    const payload = {
-      ...formData,
-      ...(isDealerSide && selectedMachine
-        ? {
-            modelNumber: selectedMachine.model,
-            serialNumber: selectedMachine.serialNumber,
-            batchNumber: selectedMachine.batchNumber,
-            invoiceNumber: selectedMachine.invoiceNumber,
-          }
-        : {}),
-      submittedBy: user?.id,
-      submittedByRole: user?.role,
-      submittedByName: user?.name,
-      companyId: user?.companyId,
-      dealerId: user?.dealerId,
-      photos: photos.map((p) => p.name),
-      createdAt: new Date().toISOString(),
-    };
+  // Extra user field validation
+  if (!user?.id || !user?.name || !user?.role) {
+    toast({
+      title: "Error",
+      description: "User details missing. Please re-login.",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    console.log("Installation Record →", payload);
+  // Start submitting
+  setIsSubmitting(true);
 
-    // Simulate API
-    setTimeout(() => {
-      toast({
-        title: "Success",
-        description: "Installation record saved successfully",
-      });
-      setIsSubmitting(false);
-      navigate("/machines");
-    }, 1500);
-  };
+  // Prepare form data
+  const fd = new FormData();
+  fd.append("installation_date", formData.installationDate);
+  fd.append("installed_by", formData.installedBy);
+  fd.append("location", formData.location);
+  fd.append("notes", formData.notes);
+
+  // Company-side machine and client info
+  if (!isDealerSide) {
+    fd.append("client_company_name", formData.clientCompanyName);
+    fd.append("client_gst_number", formData.clientGstNumber);
+    fd.append("client_contact_person", formData.clientContactPerson);
+    fd.append("client_contact_phone", formData.clientContactPhone);
+    fd.append("model_number", formData.modelNumber);
+    fd.append("serial_number", formData.serialNumber);
+  }
+
+  // Dealer-side machine details
+  if (isDealerSide && selectedMachine) {
+    fd.append("model_number", selectedMachine.model);
+    fd.append("serial_number", selectedMachine.serialNumber);
+    fd.append("batch_number", selectedMachine.batchNumber);
+    fd.append("invoice_number", selectedMachine.invoiceNumber);
+  }
+
+  // Set company or dealer foreign keys
+  if (user?.companyId) fd.append("company", String(user.companyId));
+  if (user?.dealerId) fd.append("dealer", String(user.dealerId));
+
+  // Required user info
+  fd.append("submitted_by_id", String(user.id));
+  fd.append("submitted_by_name", user.name);
+  fd.append("submitted_by_role", user.role);
+
+  // Attach photos
+  photos.forEach((photo) => fd.append("photos", photo));
+
+  // API Request
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"}/api/installations/create/`,
+      {
+        method: "POST",
+        body: fd,
+      }
+    );
+
+    if (!res.ok) {
+      const msg = await res.text();
+      throw new Error(msg || "Failed");
+    }
+
+    toast({
+      title: "Success",
+      description: "Installation record saved successfully",
+    });
+    navigate("/machines");
+  } catch (err) {
+    console.error(err);
+    toast({
+      title: "Error",
+      description: "Something went wrong while saving",
+      variant: "destructive",
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
-
   if (!canAccess) {
     return (
       <DashboardLayout>
@@ -256,6 +290,7 @@ export default function MachineInstallation() {
                 : "Record a new machine installation at client site"}
             </CardDescription>
           </CardHeader>
+
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-6">
               {/* Machine Details block (company side) */}
@@ -289,13 +324,15 @@ export default function MachineInstallation() {
                 </div>
               )}
 
-              {/* Client information (company side) */}
+              {/* Client info (company side) */}
               {!isDealerSide && (
                 <div className="border-b pb-4 space-y-4">
                   <h3 className="font-medium">Client Information</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="clientCompanyName">Client Company Name *</Label>
+                      <Label htmlFor="clientCompanyName">
+                        Client Company Name *
+                      </Label>
                       <Input
                         id="clientCompanyName"
                         name="clientCompanyName"
@@ -349,7 +386,9 @@ export default function MachineInstallation() {
                 <h3 className="font-medium">Installation Details</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="installationDate">Installation Date *</Label>
+                    <Label htmlFor="installationDate">
+                      Installation Date *
+                    </Label>
                     <Input
                       id="installationDate"
                       name="installationDate"
@@ -368,7 +407,9 @@ export default function MachineInstallation() {
                       value={formData.installedBy}
                       disabled
                     />
-                    <p className="text-xs text-muted-foreground">Auto‑filled with your name</p>
+                    <p className="text-xs text-muted-foreground">
+                      Auto‑filled with your name
+                    </p>
                   </div>
                 </div>
 
@@ -463,16 +504,16 @@ export default function MachineInstallation() {
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={
-                  isSubmitting ||
-                  (isDealerSide && !selectedMachine) ||
-                  (!isDealerSide && false)
-                }
-              >
-                {isSubmitting ? "Submitting..." : "Submit Installation"}
-              </Button>
+             <Button
+  type="submit"
+  // 🔧 Dealer machine selection disable condition temporarily commented
+  disabled={
+    isSubmitting
+    // || (isDealerSide && !selectedMachine)
+  }
+>
+  {isSubmitting ? "Submitting..." : "Submit Installation"}
+</Button>
             </CardFooter>
           </form>
         </Card>

@@ -134,3 +134,6 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'it02comptech@gmail.com'
 EMAIL_HOST_PASSWORD = 'ytno qhlv ihnz mqlx'  # App Password from Gmail
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
