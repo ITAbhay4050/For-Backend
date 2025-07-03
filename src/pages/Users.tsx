@@ -241,18 +241,38 @@ const mockUsers: User[] = [
 const UsersPage = () => {
   const { user } = useAuth();
 
-  // state ----------------------------------------------------------------
+  /* -------------------------------------------------------------
+   * STATE
+   * -----------------------------------------------------------*/
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [searchTerm, setSearchTerm] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newUser, setNewUser] = useState<Partial<User>>({
+  const [newUser, setNewUser] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    department?: string;
+    password: string;
+    confirmPassword: string;
+    role: UserRole;
+    companyId?: string;
+    dealerId?: string;
+  }>({
     name: "",
     email: "",
-    role: UserRole.COMPANY_EMPLOYEE,
+    phone: "",
+    department: "",
+    password: "",
+    confirmPassword: "",
+    role: user?.role === UserRole.DEALER_ADMIN
+      ? UserRole.DEALER_EMPLOYEE
+      : UserRole.COMPANY_EMPLOYEE,
   });
 
-  // helpers --------------------------------------------------------------
+  /* -------------------------------------------------------------
+   * HELPERS
+   * -----------------------------------------------------------*/
   const toggleExpansion = (id: string) =>
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
@@ -261,7 +281,16 @@ const UsersPage = () => {
     user?.role === UserRole.COMPANY_ADMIN ||
     user?.role === UserRole.DEALER_ADMIN;
 
-  // filter + memo --------------------------------------------------------
+  // Logged‑in role dictates which roles can be created
+  const availableRoleOptions = useMemo(() => {
+    if (user?.role === UserRole.DEALER_ADMIN) return [UserRole.DEALER_EMPLOYEE];
+    if (user?.role === UserRole.COMPANY_ADMIN) return [UserRole.COMPANY_EMPLOYEE];
+    return roleOptions.map((r) => r.value);
+  }, [user?.role]);
+
+  /* -------------------------------------------------------------
+   * FILTER & MEMO
+   * -----------------------------------------------------------*/
   const filteredUsers = useMemo(() => {
     const term = searchTerm.toLowerCase();
     const match = (s?: string) => s?.toLowerCase().includes(term);
@@ -273,36 +302,68 @@ const UsersPage = () => {
     [filteredUsers]
   );
 
-  // handlers -------------------------------------------------------------
+  /* -------------------------------------------------------------
+   * HANDLERS
+   * -----------------------------------------------------------*/
   const handleAddUser = () => {
-    if (!newUser.name || !newUser.email || !newUser.role) return;
+  if (
+    !newUser.name ||
+    !newUser.email ||
+    !newUser.role ||
+    newUser.password !== newUser.confirmPassword
+  ) {
+    alert("Please fill all required fields and ensure passwords match.");
+    return;
+  }
 
-    const newUserData: User = {
-      id: Date.now().toString(),
-      name: newUser.name,
-      email: newUser.email,
-      phone: newUser.phone || "",
-      username: newUser.email.split("@")[0],
-      role: newUser.role,
-      status: UserStatus.ACTIVE,
-      companyId: newUser.companyId,
-      dealerId: newUser.dealerId,
-      createdAt: new Date().toISOString(),
-    } as User;
+  const newUserData: User = {
+    id: Date.now().toString(),
+    name: newUser.name,
+    email: newUser.email,
+    phone: newUser.phone || "",
+    username: newUser.email.split("@")[0],
+    role: newUser.role,
+    department: newUser.department || "",
+    status: UserStatus.ACTIVE,
+    password: newUser.password,
+    createdAt: new Date().toISOString(),
+    companyId:
+      user?.role === UserRole.COMPANY_ADMIN
+        ? user.companyId
+        : newUser.companyId || undefined,
+    dealerId:
+      newUser.role === UserRole.DEALER_EMPLOYEE
+        ? newUser.dealerId || "1" // optional static dealer ID if needed
+        : undefined,
+  } as User;
 
-    setUsers((u) => [...u, newUserData]);
-    setNewUser({ name: "", email: "", role: UserRole.COMPANY_EMPLOYEE });
-    setIsAddDialogOpen(false);
-  };
+  setUsers((u) => [...u, newUserData]);
+  setNewUser({
+    name: "",
+    email: "",
+    role: UserRole.COMPANY_EMPLOYEE,
+    phone: "",
+    department: "",
+    password: "",
+    confirmPassword: "",
+  });
+  setIsAddDialogOpen(false);
+};
+
 
   const handleDeleteUser = useCallback((id: string) => {
     setUsers((u) => u.filter((x) => x.id !== id));
   }, []);
 
-  // rows -----------------------------------------------------------------
+  /* -------------------------------------------------------------
+   * ROW COMPONENT (recursive levels)
+   * -----------------------------------------------------------*/
   const UserRow = ({ user: u, level = 0 }: { user: User; level?: number }) => (
     <TableRow>
-      <TableCell className="font-medium" style={{ paddingLeft: `${level * 20 + 16}px` }}>
+      <TableCell
+        className="font-medium"
+        style={{ paddingLeft: `${level * 20 + 16}px` }}
+      >
         <div className="flex items-center gap-2">
           <UserCircle className="h-4 w-4 text-muted-foreground" />
           {u.name}
@@ -318,7 +379,11 @@ const UsersPage = () => {
             <Edit className="h-4 w-4" />
           </Button>
           {canManageUsers && (
-            <Button variant="outline" size="sm" onClick={() => handleDeleteUser(u.id)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDeleteUser(u.id)}
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
@@ -345,114 +410,167 @@ const UsersPage = () => {
           </div>
 
           {canManageUsers && (
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" /> Add User
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add New User</DialogTitle>
-                  <DialogDescription>Enter the user details below.</DialogDescription>
-                </DialogHeader>
+           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+  <DialogTrigger asChild>
+    <Button>
+      <Plus className="mr-2 h-4 w-4" /> Add User
+    </Button>
+  </DialogTrigger>
+  <DialogContent className="sm:max-w-[500px] animate-fade-in bg-gradient-to-br from-white to-blue-50 border border-blue-200 rounded-xl shadow-lg">
+    <DialogHeader>
+      <DialogTitle className="text-blue-700">Add New User</DialogTitle>
+      <DialogDescription className="text-sm text-muted-foreground">
+        Fill in the employee details below.
+      </DialogDescription>
+    </DialogHeader>
 
-                <div className="grid gap-4 py-4">
-                  {/* NAME */}
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
-                      Name
-                    </Label>
-                    <Input
-                      id="name"
-                      value={newUser.name || ""}
-                      onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                      className="col-span-3"
-                      placeholder="Full name"
-                    />
-                  </div>
+    <div className="grid gap-4 py-4">
+      {/* NAME */}
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="name" className="text-right">Name</Label>
+        <Input
+          id="name"
+          value={newUser.name || ""}
+          onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+          className="col-span-3"
+          placeholder="Full name"
+        />
+      </div>
 
-                  {/* EMAIL */}
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={newUser.email || ""}
-                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                      className="col-span-3"
-                      placeholder="user@example.com"
-                    />
-                  </div>
+      {/* EMAIL */}
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="email" className="text-right">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          value={newUser.email || ""}
+          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+          className="col-span-3"
+          placeholder="user@example.com"
+        />
+      </div>
 
-                  {/* ROLE */}
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="role" className="text-right">
-                      Role
-                    </Label>
-                    <Select
-                      onValueChange={(value) =>
-                        setNewUser({ ...newUser, role: value as UserRole })
-                      }
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roleOptions
-                          .filter((o) =>
-                            // APPLICATION_ADMIN can create anything, COMPANY_ADMIN cannot create SYSTEM ADMIN, etc.
-                            user?.role === UserRole.APPLICATION_ADMIN
-                              ? true
-                              : o.value !== UserRole.APPLICATION_ADMIN
-                          )
-                          .map((o) => (
-                            <SelectItem key={o.value} value={o.value}>
-                              {o.label}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+      {/* PHONE */}
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="phone" className="text-right">Phone</Label>
+        <Input
+          id="phone"
+          type="tel"
+          value={newUser.phone || ""}
+          onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+          className="col-span-3"
+          placeholder="+91-XXXXXXXXXX"
+        />
+      </div>
 
-                  {/* COMPANY select if needed */}
-                  {[
-                    UserRole.COMPANY_ADMIN,
-                    UserRole.COMPANY_EMPLOYEE,
-                    UserRole.DEALER_ADMIN,
-                    UserRole.DEALER_EMPLOYEE,
-                  ].includes(newUser.role as UserRole) && (
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="company" className="text-right">
-                        Company
-                      </Label>
-                      <Select
-                        onValueChange={(value) =>
-                          setNewUser({ ...newUser, companyId: value })
-                        }
-                      >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select company" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockCompanies.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
+      {/* DEPARTMENT */}
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="department" className="text-right">Department</Label>
+        <Input
+          id="department"
+          value={newUser.department || ""}
+          onChange={(e) =>
+            setNewUser({ ...newUser, department: e.target.value })
+          }
+          className="col-span-3"
+          placeholder="Optional"
+        />
+      </div>
 
-                <DialogFooter>
-                  <Button onClick={handleAddUser}>Add User</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+      {/* ROLE */}
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="role" className="text-right">Role</Label>
+        <Select
+          value={newUser.role}
+          onValueChange={(value) =>
+            setNewUser({ ...newUser, role: value as UserRole })
+          }
+        >
+          <SelectTrigger className="col-span-3">
+            <SelectValue placeholder="Select role" />
+          </SelectTrigger>
+          <SelectContent>
+            {roleOptions
+              .filter((o) => {
+                if (user?.role === UserRole.DEALER_ADMIN)
+                  return o.value === UserRole.DEALER_EMPLOYEE;
+                if (user?.role === UserRole.COMPANY_ADMIN)
+                  return (
+                    o.value === UserRole.COMPANY_EMPLOYEE ||
+                    o.value === UserRole.DEALER_EMPLOYEE
+                  );
+                return true;
+              })
+              .map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* COMPANY - only show if role is Dealer Employee and logged-in user is Company Admin */}
+      {user?.role === UserRole.COMPANY_ADMIN &&
+        newUser.role === UserRole.DEALER_EMPLOYEE && (
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="company" className="text-right">Company</Label>
+            <Select
+              onValueChange={(value) =>
+                setNewUser({ ...newUser, companyId: value })
+              }
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select company" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockCompanies.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+      {/* PASSWORD */}
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="password" className="text-right">Password</Label>
+        <Input
+          id="password"
+          type="password"
+          value={newUser.password || ""}
+          onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+          className="col-span-3"
+          placeholder="New password"
+        />
+      </div>
+
+      {/* CONFIRM PASSWORD */}
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="confirmPassword" className="text-right">Confirm</Label>
+        <Input
+          id="confirmPassword"
+          type="password"
+          value={newUser.confirmPassword || ""}
+          onChange={(e) =>
+            setNewUser({ ...newUser, confirmPassword: e.target.value })
+          }
+          className="col-span-3"
+          placeholder="Confirm password"
+        />
+      </div>
+    </div>
+
+    <DialogFooter>
+      <Button onClick={handleAddUser} className="bg-blue-600 text-white hover:bg-blue-700">
+        Add User
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
           )}
         </div>
 
@@ -589,13 +707,12 @@ const UsersPage = () => {
                                       }
                                     >
                                       <div className="flex items-center gap-2">
-                                        {dealerEmployees.length > 0 && (
-                                          expanded[dealerKey] ? (
+                                        {dealerEmployees.length > 0 &&
+                                          (expanded[dealerKey] ? (
                                             <ChevronDown className="h-4 w-4" />
                                           ) : (
                                             <ChevronRight className="h-4 w-4" />
-                                          )
-                                        )}
+                                          ))}
                                         <UserCircle className="h-4 w-4 text-muted-foreground" />
                                         {dealerAdmin.name}
                                         {dealerEmployees.length > 0 && (

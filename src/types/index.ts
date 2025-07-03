@@ -24,7 +24,7 @@ export interface User {
   email: string;
   role: UserRole;
 
-  /* optional / nice-to-have fields */
+  /* optional / nice‑to‑have fields */
   phone?: string;
   username?: string;
   status?: UserStatus;
@@ -80,28 +80,49 @@ export interface Dealer {
   createdAt?: string;
 }
 
+/* ------------------------------------------------------------------ *
+ *  Machine & photo helpers
+ * ------------------------------------------------------------------ */
+export interface MachinePhoto {
+  id: number;
+  photo: string;              // relative URL from backend
+}
+
+/**
+ * NOTE:
+ * Backend JSON comes in *snake_case* (e.g. model_number, serial_number).
+ * We therefore define those exact keys so TypeScript recognises them and
+ * VS Code red underlines disappear. If you later prefer camelCase on
+ * the front‑end, map the response after fetch.
+ */
 /* ----------  Machine  ---------- */
 export interface Machine {
-  id: string;
-  model: string;
-  serialNumber: string;
+  id: number;
 
-  installationDate?: string;
-  installedById?: string;
+  /* identifiers */
+  model_number: string;
+  serial_number: string;
+  batch_number?: string | null;
+  invoice_number?: string | null;
+
+  /* installation */
+  installation_date?: string | null;
+  installed_by?: string | null;
 
   /* client / site info */
-  clientCompanyName?: string;
-  clientGstNumber?: string;
-  clientContactPerson?: string;
-  clientContactPhone?: string;
-  location?: string;
+  client_company_name?: string | null;
+  client_gst_number?: string | null;
+  client_contact_person?: string | null;
+  client_contact_phone?: string | null;
+  location?: string | null;
 
   /* misc */
-  notes?: string;
-  photos?: string[];
+  notes?: string | null;
+  photos: MachinePhoto[];
 
+  /* status & meta */
   status: "pending" | "installed" | "servicing" | "decommissioned";
-  createdAt?: string;
+  created_at?: string;
 }
 
 /* ----------  Task  ---------- */
@@ -162,7 +183,7 @@ export interface Ticket {
 }
 
 /* ------------------------------------------------------------------ *
- *  Access-control helper
+ *  Access‑control helper
  * ------------------------------------------------------------------ */
 export interface RoleAccess {
   role: UserRole;

@@ -4,7 +4,8 @@ Django REST views for Comptech Equipment LIMITED API.
 Updated 2 July 2025: Full merged version including OTP flow, login, company/dealer registration,
 task and machine installation support with DRF TokenAuthentication.
 """
-
+from rest_framework.generics import ListAPIView
+from rest_framework import serializers  
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import User as AuthUser
 from django.core.cache import cache
@@ -19,6 +20,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
+from .models import MachineInstallation, InstallationPhoto
 
 from .models import Company, Dealer, LoginRecord, Task
 from .serializers import (
@@ -248,14 +250,36 @@ class DealerCountView(APIView):
 # ---------------------------------------------------------------------------
 # Machine Installation View (Multipart form support)
 # ---------------------------------------------------------------------------
+
+class MachineInstallationListView(ListAPIView):
+    serializer_class = MachineInstallationSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = MachineInstallation.objects.all().order_by("-created_at")
+        company_id = self.request.query_params.get("company_id")
+        dealer_id = self.request.query_params.get("dealer_id")
+        if company_id:
+            qs = qs.filter(company_id=company_id)
+        if dealer_id:
+            qs = qs.filter(dealer_id=dealer_id)
+        return qs
+
+
 @api_view(["POST"])
 @parser_classes([MultiPartParser, FormParser])
 def create_machine_installation(request):
-    serializer = MachineInstallationSerializer(data=request.data)
+    """
+    Multipart POST:
+        • installation fields
+        • photo_files[] (≤ 3 images ≤ 5 MB each)
+    """
+    serializer = MachineInstallationSerializer(data=request.data, context={"request": request})
     if serializer.is_valid():
         serializer.save()
-        return Response({"message": "Installation saved successfully", "data": serializer.data}, status=201)
-    return Response(serializer.errors, status=400)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ---------------------------------------------------------------------------
