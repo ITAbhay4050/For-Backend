@@ -23,27 +23,27 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login } = useAuth();
+  const { login } = useAuth();      // <-- AuthContext now posts to /api/login/ for all roles
   const navigate = useNavigate();
 
-  /* ---------- rotating gear animation (500 RPM = 8.33 RPS) ---------- */
+  /* ---------- rotating gear animation (500 RPM) ---------- */
   useEffect(() => {
-    const gears = document.querySelectorAll('.gear-animation');
-    let animationFrame: number;
-    
-    const animateGears = (timestamp: number) => {
-      const rotation = (timestamp / 120) % 360; // 500 RPM calculation
-      gears.forEach((gear, index) => {
-        const direction = index % 2 === 0 ? 1 : -1;
-        (gear as HTMLElement).style.transform = `rotate(${rotation * direction}deg)`;
+    const gears = document.querySelectorAll(".gear-animation");
+    let af: number;
+
+    const spin = (t: number) => {
+      const rot = (t / 120) % 360;
+      gears.forEach((g, i) => {
+        const dir = i % 2 === 0 ? 1 : -1;
+        (g as HTMLElement).style.transform = `rotate(${rot * dir}deg)`;
       });
-      animationFrame = requestAnimationFrame(animateGears);
+      af = requestAnimationFrame(spin);
     };
-    
-    animationFrame = requestAnimationFrame(animateGears);
-    return () => cancelAnimationFrame(animationFrame);
+    af = requestAnimationFrame(spin);
+    return () => cancelAnimationFrame(af);
   }, []);
 
+  /* ---------- helpers ---------- */
   const showToast = (
     title: string,
     description: string,
@@ -53,7 +53,11 @@ const Login = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      showToast("Validation Error", "Please enter both email and password.", "destructive");
+      showToast(
+        "Validation Error",
+        "Please enter both email and password.",
+        "destructive",
+      );
       return;
     }
 
@@ -69,6 +73,7 @@ const Login = () => {
     }
   };
 
+  /* ---------- quick‑fill demo creds ---------- */
   const fillCredentials = (preset: string) => {
     switch (preset) {
       case "admin":
@@ -94,9 +99,10 @@ const Login = () => {
     }
   };
 
+  /* ---------- UI ---------- */
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 relative overflow-hidden">
-      {/* Background gears */}
+      {/* background gears */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -left-40 -top-40 w-80 h-80">
           <Gear className="w-full h-full text-blue-500/10 gear-animation origin-center" />
@@ -109,11 +115,11 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Main card */}
+      {/* main card */}
       <div className="w-full max-w-md px-4 relative z-10">
         <Card className="shadow-xl bg-white/90 backdrop-blur-sm border border-gray-200">
           <CardHeader className="space-y-6 text-center">
-            {/* Logo section */}
+            {/* logo */}
             <div className="flex flex-col items-center">
               <div className="w-24 h-24 mb-4 flex items-center justify-center">
                 <div className="relative w-full h-full">
@@ -123,13 +129,12 @@ const Login = () => {
                   <Wrench className="absolute -bottom-2 -right-2 w-6 h-6 text-orange-400" />
                 </div>
               </div>
-              
               <div className="text-center">
                 <h1 className="text-3xl font-bold text-blue-800">COMPTECH</h1>
                 <p className="text-blue-600 mt-1 text-sm">Shaping a better future</p>
               </div>
             </div>
-            
+
             <CardTitle className="text-xl font-semibold text-gray-800">
               Machine Service Portal
             </CardTitle>
@@ -140,7 +145,7 @@ const Login = () => {
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email */}
+              {/* email */}
               <div className="space-y-3">
                 <Label htmlFor="email" className="text-gray-700 flex items-center gap-2">
                   <svg
@@ -171,7 +176,7 @@ const Login = () => {
                 />
               </div>
 
-              {/* Password */}
+              {/* password */}
               <div className="space-y-3">
                 <Label htmlFor="password" className="text-gray-700 flex items-center gap-2">
                   <svg
@@ -202,7 +207,7 @@ const Login = () => {
                 />
               </div>
 
-              {/* Submit */}
+              {/* submit */}
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2 px-4 rounded-md transition-all duration-300 shadow hover:shadow-md"
@@ -243,10 +248,10 @@ const Login = () => {
               </Button>
             </form>
 
-            {/* Links */}
+            {/* links */}
             <div className="mt-6 text-center text-sm">
               <p className="mb-2 text-gray-600">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{" "}
                 <Link
                   to="/dealerregister"
                   className="text-blue-600 hover:text-blue-800 underline underline-offset-4 transition-colors"
@@ -255,7 +260,7 @@ const Login = () => {
                 </Link>
               </p>
               <p className="text-gray-600">
-                Create Company?{' '}
+                Create Company?{" "}
                 <Link
                   to="/register"
                   className="text-blue-600 hover:text-blue-800 underline underline-offset-4 transition-colors"
@@ -265,7 +270,7 @@ const Login = () => {
               </p>
             </div>
 
-            {/* Demo buttons */}
+            {/* demo buttons */}
             <div className="border-t border-gray-200 pt-5 mt-6">
               <p className="text-center text-sm text-gray-600 mb-3">
                 Demo Accounts (click to autofill):
@@ -277,14 +282,14 @@ const Login = () => {
                   ["Company Employee", "company_employee", "bg-green-100 text-green-800 border-green-200 hover:bg-green-200"],
                   ["Dealer Admin", "dealer_admin", "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"],
                   ["Dealer Employee", "dealer_employee", "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200"],
-                ].map(([label, key, className]) => (
+                ].map(([label, key, cls]) => (
                   <Button
                     key={key}
                     variant="outline"
                     size="sm"
                     type="button"
                     onClick={() => fillCredentials(key as string)}
-                    className={className}
+                    className={cls as string}
                   >
                     {label}
                   </Button>

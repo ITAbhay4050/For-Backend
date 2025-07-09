@@ -22,9 +22,7 @@ from django.urls import include, path
 urlpatterns: list = [
     # Django admin
     path("admin/", admin.site.urls),
-
-    # Application API (namespaced via app_name="api" inside api/urls.py)
-    path("api/", include("api.urls")),
+    path("api/", include("api.urls")), 
 ]
 
 # ---------------------------------------------------------------------------

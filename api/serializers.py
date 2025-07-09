@@ -17,11 +17,9 @@ from .models import (
     Employee,
 )
 
-
 # ────────────────────────────────────────────────────────────────
 # Company & Dealer
 # ────────────────────────────────────────────────────────────────
-
 
 class CompanySerializer(serializers.ModelSerializer):
     """CRUD for a *Company* (manufacturer/servicing firm)."""
@@ -33,15 +31,12 @@ class CompanySerializer(serializers.ModelSerializer):
         model = Company
         fields = "__all__"
 
-
 class DealerSerializer(serializers.ModelSerializer):
     """CRUD + extra validation for *Dealer* (linked to a Company)."""
 
     company_name = serializers.CharField(source="company.name", read_only=True)
-
-    # Helper flag coming from your React UI (will not be stored in DB)
+    # Helper flag coming from your React UI (won’t be stored in DB)
     isDirect = serializers.BooleanField(write_only=True, required=False)
-
     # Write‑only password; ensure it is always hashed before save.
     password = serializers.CharField(write_only=True)
 
@@ -68,7 +63,6 @@ class DealerSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
     # --- extra validation -------------------------------------------------
-
     def validate_phone(self, value: str) -> str:
         """Very lightweight phone check; use *phonenumbers* lib in prod."""
         digits = "".join(filter(str.isdigit, value))
@@ -77,12 +71,10 @@ class DealerSerializer(serializers.ModelSerializer):
         return value
 
     # --- life‑cycle overrides --------------------------------------------
-
     def create(self, validated_data):
         # 1️⃣ discard helper flag
         validated_data.pop("isDirect", None)
-
-        # 2️⃣ always call super; the model's save() hashes the password if needed
+        # 2️⃣ always call super; the model’s save() hashes the password if needed
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -94,11 +86,9 @@ class DealerSerializer(serializers.ModelSerializer):
         validated_data.pop("isDirect", None)
         return super().update(instance, validated_data)
 
-
 # ────────────────────────────────────────────────────────────────
 # Machine Installation & photos
 # ────────────────────────────────────────────────────────────────
-
 
 class InstallationPhotoSerializer(serializers.ModelSerializer):
     """Read‑only representation of stored installation photos."""
@@ -107,7 +97,6 @@ class InstallationPhotoSerializer(serializers.ModelSerializer):
         model = InstallationPhoto
         fields = ["id", "photo"]  # returns URL/path only
         read_only_fields = fields
-
 
 class MachineInstallationSerializer(serializers.ModelSerializer):
     """Full serializer for machine installations with inline photo upload."""
@@ -156,28 +145,22 @@ class MachineInstallationSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "photos"]
 
     # --- extra validation -------------------------------------------------
-
     def validate_photo_files(self, value):
         if len(value) > 3:
             raise serializers.ValidationError("You can upload a maximum of 3 photos.")
         return value
 
     # --- life‑cycle overrides --------------------------------------------
-
     def create(self, validated_data):
         files = validated_data.pop("photo_files", [])
         installation = super().create(validated_data)  # will run .clean()
-
         for img in files:
             InstallationPhoto.objects.create(installation=installation, photo=img)
-
         return installation
-
 
 # ────────────────────────────────────────────────────────────────
 # Task
 # ────────────────────────────────────────────────────────────────
-
 
 class TaskSerializer(serializers.ModelSerializer):
     """Generic task / issue tracker serializer."""
@@ -196,11 +179,9 @@ class TaskSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Deadline cannot be more than a year away.")
         return value
 
-
 # ────────────────────────────────────────────────────────────────
 # Employee
 # ────────────────────────────────────────────────────────────────
-
 
 class EmployeeSerializer(serializers.ModelSerializer):
     """Serializer for *Employee* accounts with secure password handling."""
@@ -209,11 +190,10 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Employee
-        fields = "__all__"  # list explicit fields in prod
+        fields = "__all__"  # list explicit fields in production
         extra_kwargs = {"password": {"write_only": True}}
 
     # --- life‑cycle overrides --------------------------------------------
-
     def create(self, validated_data):
         validated_data["password"] = make_password(validated_data["password"])
         return super().create(validated_data)

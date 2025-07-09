@@ -81,30 +81,19 @@ TEMPLATES: list[dict] = [
 # -----------------------------------------------------------------------------
 # Database: choose MySQL if DJ_DB_ENGINE == "mysql" else SQLite fallback.
 # -----------------------------------------------------------------------------
-DB_ENGINE: str = os.getenv("DJ_DB_ENGINE", "sqlite").lower()
-if DB_ENGINE == "mysql":
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.mysql",
-            "NAME": os.getenv("DJ_DB_NAME", "munim008"),
-            "USER": os.getenv("DJ_DB_USER", "sa"),
-            "PASSWORD": os.getenv("DJ_DB_PASSWORD", "comptech"),
-            "HOST": os.getenv("DJ_DB_HOST", "192.168.1.5"),
-            "PORT": os.getenv("DJ_DB_PORT", "5688"),
-            "OPTIONS": {
-                "charset": "utf8mb4",
-                # ensure strict mode so silent truncations don’t happen
-                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
-        }
+DATABASES = {
+    "default": {
+        "ENGINE": "mssql",
+        "NAME": os.getenv("DJ_DB_NAME", "Application"),
+        "USER": os.getenv("DJ_DB_USER", "sa"),
+        "PASSWORD": os.getenv("DJ_DB_PASSWORD", "nipl@12345"),
+        "HOST": os.getenv("DJ_DB_HOST", "192.168.1.4"),
+        "PORT": os.getenv("DJ_DB_PORT", "1433"),
+        "OPTIONS": {
+            "driver": "ODBC Driver 17 for SQL Server",
+        },
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+}
 
 # -----------------------------------------------------------------------------
 # Password validation
