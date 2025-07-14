@@ -56,21 +56,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
  const login = async (email: string, password: string) => {
   setIsLoading(true);
   try {
-    // First try the unified login endpoint
-    let res = await fetch(`${API_BASE}/login/`, {
+    const res = await fetch(`${API_BASE}/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-
-    // If unified login fails with 404, try employee-specific endpoint
-    if (res.status === 404) {
-      res = await fetch(`${API_BASE}/employee-login/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-    }
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
@@ -79,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const data = await res.json();
     
+    // Normalize the response data
     const loggedInUser: AuthUser = {
       id: String(data.employee_id || data.dealer_id || data.company_id),
       name: data.name,
@@ -99,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }
 };
+
   /* ---------- logout ---------- */
   const logout = () => {
     localStorage.removeItem("user");
