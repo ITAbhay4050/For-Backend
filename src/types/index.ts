@@ -27,7 +27,7 @@ export interface User {
   /* optional / nice‑to‑have fields */
   phone?: string;
   username?: string;
-  department?: string;          // 👈  added to fix VS‑Code error
+  department?: string;
   status?: UserStatus;
   companyId?: string;
   dealerId?: string;
@@ -75,9 +75,9 @@ export interface Dealer {
 
   /* tax */
   gstNumber?: string;
-  panNumber?: string;           // optional but handy
+  panNumber?: string;
 
-  companyId: string;            // FK → Company
+  companyId: string;
   status?: UserStatus;
   createdAt?: string;
 }
@@ -87,17 +87,16 @@ export interface Dealer {
  * ------------------------------------------------------------------ */
 export interface MachinePhoto {
   id: number;
-  photo: string;                // relative URL from backend
+  photo: string;  // relative URL from backend
 }
 
 /**
  * NOTE:
  * Backend JSON comes in *snake_case* (e.g. model_number, serial_number).
  * We therefore define those exact keys so TypeScript recognises them and
- * VS Code red underlines disappear. If you later prefer camelCase on
+ * VS Code red underlines disappear. If you prefer camelCase on
  * the front‑end, map the response after fetch.
  */
-/* ----------  Machine  ---------- */
 export interface Machine {
   id: number;
 
@@ -143,14 +142,14 @@ export interface Task {
 
   /* machine linkage */
   machineId?: string;
-  serialNumber?: string;   // convenience when machineId unknown
+  serialNumber?: string;
 }
 
 /* ----------  Ticket  ---------- */
 export interface Ticket {
   id: string;
   machineId: string;
-  serialNumber?: string;          // mirrors Task serialNumber
+  serialNumber?: string;
 
   issueDescription: string;
   dateReported: string;
@@ -162,7 +161,6 @@ export interface Ticket {
   urgency: "low" | "medium" | "high" | "critical";
   resolutionNotes?: string;
 
-  /* feedback objects are optional & nested */
   feedback?: {
     dealerAdminFeedback?: {
       satisfactionScore: number;
@@ -180,7 +178,7 @@ export interface Ticket {
     };
   };
 
-  dealerId?: string;  // which dealer raised / owns this ticket
+  dealerId?: string;
   createdAt?: string;
 }
 

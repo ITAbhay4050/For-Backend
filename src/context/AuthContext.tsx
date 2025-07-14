@@ -53,33 +53,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   /* ---------- login ---------- */
-  const login = async (email: string, password: string) => {
+ const login = async (email: string, password: string) => {
   setIsLoading(true);
   try {
-    // Try employee login first
-    let res = await fetch(`${API_BASE}/employee-login/`, {
+    // First try the unified login endpoint
+    let res = await fetch(`${API_BASE}/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
-    let data;
-    if (res.ok) {
-      data = await res.json();
-    } else {
-      // If employee login fails with 404 or 401, try dealer/company login
-      res = await fetch(`${API_BASE}/login/`, {
+    // If unified login fails with 404, try employee-specific endpoint
+    if (res.status === 404) {
+      res = await fetch(`${API_BASE}/employee-login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      if (!res.ok) throw new Error("Invalid credentials");
-      data = await res.json();
     }
 
-    // Identify role and ID properly
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || "Invalid credentials");
+    }
+
+    const data = await res.json();
+    
     const loggedInUser: AuthUser = {
-      id: String(data.employee_id ?? data.dealer_id ?? data.company_id),
+      id: String(data.employee_id || data.dealer_id || data.company_id),
       name: data.name,
       email,
       role: data.role as UserRole,
@@ -98,7 +99,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }
 };
-
   /* ---------- logout ---------- */
   const logout = () => {
     localStorage.removeItem("user");

@@ -12,6 +12,7 @@ from rest_framework import status, permissions
 
 from datetime import timedelta
 from rest_framework import serializers
+from rest_framework.decorators import api_view, permission_classes
 
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import User as AuthUser
@@ -278,16 +279,38 @@ class RegisterEmployee(APIView):
         return Response(EmployeeSerializer(Employee.objects.all(), many=True).data)
 
     def post(self, request):
-        email = request.data.get("email")
+        data = request.data.copy()
+        email = data.get("email")
+        role = data.get("role")
+
         if Employee.objects.filter(email=email).exists():
             return Response({"message": "Employee already exists."}, status=400)
 
-        serializer = EmployeeSerializer(data=request.data)
+        # ✅ Ensure company_id for company-related roles
+        if role in ["COMPANY_EMPLOYEE", "COMPANY_ADMIN"]:
+            if not data.get("company"):
+                return Response({"message": "Company ID is required."}, status=400)
+
+        # ✅ Ensure dealer_id & fetch company_id from dealer for dealer roles
+        if role in ["DEALER_EMPLOYEE", "DEALER_ADMIN"]:
+            dealer_id = data.get("dealer")
+            if not dealer_id:
+                return Response({"message": "Dealer ID is required."}, status=400)
+
+            try:
+                dealer = Dealer.objects.get(id=dealer_id)
+                data["company"] = dealer.company_id  # Link dealer's company to employee
+            except Dealer.DoesNotExist:
+                return Response({"message": "Dealer not found."}, status=404)
+
+        # ✅ Continue with normal registration
+        serializer = EmployeeSerializer(data=data)
         serializer.is_valid(raise_exception=True)
-      
         emp = serializer.save()
+
         return Response(
-            {"message": "Employee registered.", **EmployeeSerializer(emp).data}, status=201
+            {"message": "Employee registered.", **EmployeeSerializer(emp).data},
+            status=201,
         )
 
 
@@ -353,3 +376,10 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def check_serial_unique(request):
+    serial = request.query_params.get("serial", "").strip()
+    exists = MachineInstallation.objects.filter(serial_number__iexact=serial).exists()
+    return Response({"isUnique": not exists})

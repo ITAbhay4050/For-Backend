@@ -20,6 +20,7 @@ from .views import (
     TaskViewSet,
 )
 
+from .views import check_serial_unique
 router = DefaultRouter()
 router.register(r"tasks", TaskViewSet, basename="task")
 
@@ -42,6 +43,7 @@ urlpatterns = [
     # Machine installations
     path("installations/", MachineInstallationListView.as_view(), name="installation_list"),
     path("installations/create/", create_machine_installation, name="create_installation"),
+      path("machines/check-serial/", check_serial_unique, name="check_serial_unique"),
 
     # Router (tasks/)
     path("", include(router.urls)),

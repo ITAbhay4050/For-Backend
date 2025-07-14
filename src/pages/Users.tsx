@@ -303,19 +303,21 @@
         companyId?: string;
         dealerId?: string;
       };
-
-      const [newUser, setNewUser] = useState<NewUserState>({
-        name: "",
-        email: "",
-        phone: "",
-        department: "",
-        password: "",
-        confirmPassword: "",
-        role:
-          user?.role === UserRole.DEALER_ADMIN
-            ? UserRole.DEALER_EMPLOYEE
-            : UserRole.COMPANY_EMPLOYEE,
-      });
+// In your component state initialization:
+const [newUser, setNewUser] = useState<NewUserState>({
+  name: "",
+  email: "",
+  phone: "",
+  department: "",
+  password: "",
+  confirmPassword: "",
+  role:
+    user?.role === UserRole.DEALER_ADMIN
+      ? UserRole.DEALER_EMPLOYEE
+      : UserRole.COMPANY_EMPLOYEE,
+  companyId: user?.companyId,
+  dealerId: user?.dealerId, // Add this line to preset dealerId for Dealer Admins
+});
 
       /* ---------------------------- LOAD DATA ------------------------ */
       const loadUsers = useCallback(async () => {
@@ -437,88 +439,131 @@
       );
 
       /* --------------------- CREATE / DELETE ------------------------- */
-      const handleAddUser = async () => {
-        if (
-          !newUser.name ||
-          !newUser.email ||
-          !newUser.role ||
-          !newUser.password
-        ) {
-          toast({
-            title: "Validation Error",
-            description: "Please fill all required fields",
-            variant: "destructive",
-          });
-          return;
-        }
+ const handleAddUser = async () => {
+  if (
+    !newUser.name ||
+    !newUser.email ||
+    !newUser.role ||
+    !newUser.password
+  ) {
+    toast({
+      title: "Validation Error",
+      description: "Please fill all required fields",
+      variant: "destructive",
+    });
+    return;
+  }
 
-        if (newUser.password !== newUser.confirmPassword) {
-          toast({
-            title: "Validation Error",
-            description: "Passwords do not match",
-            variant: "destructive",
-          });
-          return;
-        }
+  if (newUser.password !== newUser.confirmPassword) {
+    toast({
+      title: "Validation Error",
+      description: "Passwords do not match",
+      variant: "destructive",
+    });
+    return;
+  }
 
-        setIsLoading(true);
+  // Additional validation for company/dealer based on role
+  if (
+    (newUser.role === UserRole.COMPANY_ADMIN || 
+     newUser.role === UserRole.COMPANY_EMPLOYEE) &&
+    !newUser.companyId
+  ) {
+    toast({
+      title: "Validation Error",
+      description: "Company is required for this role",
+      variant: "destructive",
+    });
+    return;
+  }
 
-        try {
-          const payload = {
-            name: newUser.name,
-            email: newUser.email,
-            phone: newUser.phone,
-            department: newUser.department,
-            role: newUser.role,
-            password: newUser.password,
-            company: newUser.companyId,
-            dealer: newUser.dealerId,
-          };
+  if (
+    (newUser.role === UserRole.DEALER_ADMIN || 
+     newUser.role === UserRole.DEALER_EMPLOYEE) &&
+    !newUser.dealerId
+  ) {
+    toast({
+      title: "Validation Error",
+      description: "Dealer is required for this role",
+      variant: "destructive",
+    });
+    return;
+  }
 
-          const response = await fetch(`${API_BASE}/register/employee/`, {
-            method: "POST",
-            headers: makeAuthHeaders(token),
-            body: JSON.stringify(payload),
-          });
+  setIsLoading(true);
 
-          if (response.ok) {
-            const createdEmployee = await response.json();
-            setUsers(prev => [...prev, normaliseEmployee(createdEmployee)]);
-            
-            toast({
-              title: "Success",
-              description: "Employee registered successfully",
-            });
-            
-            // Reset form
-            setNewUser({
-              name: "",
-              email: "",
-              phone: "",
-              department: "",
-              password: "",
-              confirmPassword: "",
-              role:
-                user?.role === UserRole.DEALER_ADMIN
-                  ? UserRole.DEALER_EMPLOYEE
-                  : UserRole.COMPANY_EMPLOYEE,
-            });
-            setIsAddDialogOpen(false);
-          } else {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Failed to register employee");
-          }
-        } catch (error) {
-          toast({
-            title: "Error",
-            description: error instanceof Error ? error.message : "Failed to register employee",
-            variant: "destructive",
-          });
-          console.error("Error registering employee:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
+  try {
+    const payload: any = {
+      name: newUser.name,
+      email: newUser.email,
+      phone: newUser.phone,
+      department: newUser.department,
+      role: newUser.role,
+      password: newUser.password,
+    };
+
+    // Only include company if the role requires it
+    if (
+      newUser.role === UserRole.COMPANY_ADMIN || 
+      newUser.role === UserRole.COMPANY_EMPLOYEE
+    ) {
+      payload.company = newUser.companyId;
+    }
+
+    // Only include dealer if the role requires it
+    if (
+      newUser.role === UserRole.DEALER_ADMIN || 
+      newUser.role === UserRole.DEALER_EMPLOYEE
+    ) {
+      payload.dealer = newUser.dealerId;
+    }
+
+    const response = await fetch(`${API_BASE}/register/employee/`, {
+      method: "POST",
+      headers: makeAuthHeaders(token),
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      const createdEmployee = await response.json();
+      setUsers(prev => [...prev, normaliseEmployee(createdEmployee)]);
+      
+      toast({
+        title: "Success",
+        description: "Employee registered successfully",
+      });
+      
+      // Reset form
+      setNewUser({
+        name: "",
+        email: "",
+        phone: "",
+        department: "",
+        password: "",
+        confirmPassword: "",
+        role:
+          user?.role === UserRole.DEALER_ADMIN
+            ? UserRole.DEALER_EMPLOYEE
+            : UserRole.COMPANY_EMPLOYEE,
+        companyId: user?.companyId,  // Preset companyId if user is company admin
+      });
+
+      setIsAddDialogOpen(false);
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to register employee");
+    }
+  } catch (error) {
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : "Failed to register employee",
+      variant: "destructive",
+    });
+    console.error("Error registering employee:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
       const handleDeleteUser = useCallback(async (id: string) => {
         try {
