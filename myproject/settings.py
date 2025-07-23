@@ -1,6 +1,6 @@
-"""Django settings for *myproject* (Comptech Equipment LIMITED).
-Updated 2 July 2025: fixed DRF permission class, moved secrets to env vars,
-added MySQL strict‑mode, clarified typing.
+"""Django settings for myproject (Comptech Equipment LIMITED).
+Updated 2 July 2025: fixed DRF permission class, moved secrets to env vars,
+added MySQL strict-mode, clarified typing.
 
 ⚠️  Do **NOT** commit this file with real credentials – use .env instead.
 """
@@ -18,7 +18,7 @@ load_dotenv(str(BASE_DIR / ".env"))  # accepts str on Windows
 # -----------------------------------------------------------------------------
 # Core settings
 # -----------------------------------------------------------------------------
-SECRET_KEY: str = os.getenv("DJ_SECRET_KEY", "django‑insecure‑please_change_me")
+SECRET_KEY: str = os.getenv("DJ_SECRET_KEY", "django-insecure-please_change_me")
 DEBUG: bool = os.getenv("DJ_DEBUG", "True").lower() == "true"
 ALLOWED_HOSTS: list[str] = [host.strip() for host in os.getenv("DJ_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")]
 
@@ -33,13 +33,13 @@ INSTALLED_APPS: list[str] = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    # 3rd‑party
+    # 3rd-party
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
 
     # local
-    "api",
+    "api",  # your app
 ]
 
 # -----------------------------------------------------------------------------
@@ -79,14 +79,12 @@ TEMPLATES: list[dict] = [
 ]
 
 # -----------------------------------------------------------------------------
-# Database: choose MySQL if DJ_DB_ENGINE == "mysql" else SQLite fallback.
+# Database: Default 'Application' DB and 'munim006' DB
 # -----------------------------------------------------------------------------
-# your_project/settings.py
-
 DATABASES = {
     "default": {
         "ENGINE": "mssql",
-        "NAME": os.getenv("DJ_DB_NAME", "Application"), # Yeh aapka current database hai
+        "NAME": os.getenv("DJ_DB_NAME", "Application"),
         "USER": os.getenv("DJ_DB_USER", "sa"),
         "PASSWORD": os.getenv("DJ_DB_PASSWORD", "nipl@12345"),
         "HOST": os.getenv("DJ_DB_HOST", "192.168.1.4"),
@@ -95,11 +93,11 @@ DATABASES = {
             "driver": "ODBC Driver 17 for SQL Server",
         },
     },
-    "munim006_db": { # Naya database connection
+    "munim006_db": {
         "ENGINE": "mssql",
-        "NAME": "munim006", # munim006 database ka naam
-        "USER": "sa", # Munim006 database ka user
-        "PASSWORD": "nipl@12345", # Munim006 database ka password
+        "NAME": "munim006",
+        "USER": "sa",
+        "PASSWORD": "nipl@12345",
         "HOST": "192.168.1.4",
         "PORT": "1433",
         "OPTIONS": {
@@ -108,8 +106,8 @@ DATABASES = {
     },
 }
 
-# Optional: Database routing agar aap complex queries kar rahe hain
-DATABASE_ROUTERS = ['api.db_routers.Munim006Router'] # Isko banayenge
+DATABASE_ROUTERS = ['api.db_routers.Munim006Router']
+
 # -----------------------------------------------------------------------------
 # Password validation
 # -----------------------------------------------------------------------------
@@ -146,10 +144,15 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",  # ← fixed
+        "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.FormParser',
     ],
 }
 
@@ -158,20 +161,22 @@ REST_FRAMEWORK = {
 # -----------------------------------------------------------------------------
 CORS_ALLOW_ALL_ORIGINS: bool = os.getenv("DJ_CORS_ALLOW_ALL", "True").lower() == "true"
 if not CORS_ALLOW_ALL_ORIGINS:
-    CORS_ALLOWED_ORIGINS: list[str] = [origin.strip() for origin in os.getenv("DJ_CORS_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
+    CORS_ALLOWED_ORIGINS: list[str] = [
+        origin.strip() for origin in os.getenv("DJ_CORS_ALLOWED_ORIGINS", "").split(",") if origin.strip()
+    ]
 
 # -----------------------------------------------------------------------------
-# Email (SMTP) – use App Password stored in env var for security
+# Email (SMTP)
 # -----------------------------------------------------------------------------
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'it02comptech@gmail.com'
-EMAIL_HOST_PASSWORD = 'ytno qhlv ihnz mqlx' 
+EMAIL_HOST_PASSWORD = 'ytno qhlv ihnz mqlx'
 
 # -----------------------------------------------------------------------------
-# Logging – simple console output even when DEBUG=False
+# Logging
 # -----------------------------------------------------------------------------
 LOGGING = {
     "version": 1,

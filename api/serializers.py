@@ -1,6 +1,6 @@
 """
-serializers.py — DRF serializers for Comptech Equipment Ltd.
-Updated 7 July 2025: added update() methods for Employee & Dealer, minor clean‑ups.
+serializers.py — DRF serializers for Comptech Equipment Ltd.
+Updated 22 July 2025: added update() methods for Employee & Dealer, minor clean‑ups.
 """
 from datetime import timedelta
 
@@ -15,6 +15,7 @@ from .models import (
     InstallationPhoto,
     Task,
     Employee,
+    AccountMaster, # <--- Import AccountMaster
 )
 
 # ────────────────────────────────────────────────────────────────
@@ -30,6 +31,9 @@ class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
         fields = "__all__"
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
 
 class DealerSerializer(serializers.ModelSerializer):
     """CRUD + extra validation for *Dealer* (linked to a Company)."""
@@ -59,8 +63,11 @@ class DealerSerializer(serializers.ModelSerializer):
             "password",
             "created_at",
             "isDirect",
+            "otp",            # Added missing OTP fields from model
+            "otp_created_at", # Added missing OTP fields from model
+            "is_verified",    # Added missing OTP fields from model
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "company_name", "otp", "otp_created_at", "is_verified"]
 
     # --- extra validation -------------------------------------------------
     def validate_phone(self, value: str) -> str:
@@ -86,6 +93,26 @@ class DealerSerializer(serializers.ModelSerializer):
         validated_data.pop("isDirect", None)
         return super().update(instance, validated_data)
 
+
+# NEW: Serializer for AccountMaster (external DB) - Read-only
+class AccountMasterSerializer(serializers.ModelSerializer):
+    # Mapping external DB column names to more generic names if desired
+    # These 'source' attributes map to the *model field names* (not db_column names directly)
+    # The model field names themselves might be mapped to db_column names.
+    name = serializers.CharField(source='accountname', read_only=True)
+    gst_no = serializers.CharField(source='gstno', read_only=True)
+    # Removed source='pan_no' as it's redundant (field name is 'pan_no' and so is the source)
+    pan_no = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = AccountMaster
+        # Corrected fields: Only include fields present in the AccountMaster model.
+        # Removed 'address' and 'phone' as they are not defined in your AccountMaster model.
+        fields = ['accountmasterid', 'name', 'email', 'pan_no', 'gst_no']
+        read_only_fields = fields # All fields are read-only as it's from an external managed=False DB
+
+
+
 # ────────────────────────────────────────────────────────────────
 # Machine Installation & photos
 # ────────────────────────────────────────────────────────────────
@@ -107,13 +134,13 @@ class MachineInstallationSerializer(serializers.ModelSerializer):
     # Incoming files – not stored directly on the model
     photo_files = serializers.ListField(
         child=serializers.ImageField(
-            max_length=5_000_000,  # 5 MB each
+            max_length=5_000_000,   # 5 MB each
             allow_empty_file=False,
             use_url=False,
         ),
         write_only=True,
         required=False,
-        help_text="JPEG/PNG ≤ 5 MB each; maximum 3 files",
+        help_text="JPEG/PNG ≤ 5 MB each; maximum 3 files",
     )
 
     class Meta:
@@ -122,10 +149,11 @@ class MachineInstallationSerializer(serializers.ModelSerializer):
             "id",
             "company",
             "dealer",
-            "model_number",
-            "serial_number",
+            "item_name",
+            "item_code",
             "batch_number",
             "invoice_number",
+            "purchase_date",
             "client_company_name",
             "client_gst_number",
             "client_contact_person",
@@ -134,7 +162,7 @@ class MachineInstallationSerializer(serializers.ModelSerializer):
             "installed_by",
             "location",
             "notes",
-            "submitted_by_id",
+            "submitted_by", # Changed from submitted_by_id to submitted_by for ForeignKey
             "submitted_by_role",
             "submitted_by_name",
             "created_at",
@@ -143,6 +171,11 @@ class MachineInstallationSerializer(serializers.ModelSerializer):
             "photos",
         ]
         read_only_fields = ["id", "created_at", "photos"]
+        # Allow submitted_by to be written as ID if sent by frontend
+        extra_kwargs = {
+            'submitted_by': {'write_only': True}
+        }
+
 
     # --- extra validation -------------------------------------------------
     def validate_photo_files(self, value):
@@ -178,7 +211,6 @@ class TaskSerializer(serializers.ModelSerializer):
         if value > today + timedelta(days=365):
             raise serializers.ValidationError("Deadline cannot be more than a year away.")
         return value
-
 # ────────────────────────────────────────────────────────────────
 # Employee
 # ────────────────────────────────────────────────────────────────
@@ -203,10 +235,3 @@ class EmployeeSerializer(serializers.ModelSerializer):
         if password:
             validated_data["password"] = make_password(password)
         return super().update(instance, validated_data)
-class CompanySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Company
-        fields = '__all__'  # or list all explicitly if preferred
-        extra_kwargs = {
-            'password': {'write_only': True}  # ✅ Prevents password from being shown in GET
-        }

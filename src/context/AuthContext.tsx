@@ -11,12 +11,10 @@ import { User, UserRole } from "@/types";
 /* Helper types                                                        */
 /* ------------------------------------------------------------------ */
 export type AuthUser = User & {
-  /** DRF token for Authorization header */
-  token: string;
-  /** Present only when user_type === "dealer" */
+  token: string; // DRF token for Authorization header
   dealerId?: string;
-  /** Present only when user_type === "company" */
   companyId?: string;
+  gstNumber?: string; // Add GST number for dealer/company validation
 };
 
 interface AuthContextType {
@@ -35,7 +33,6 @@ interface AuthContextType {
 /* ------------------------------------------------------------------ */
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/* Use Vite env var if provided, fallback to localhost */
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
 
 /* ------------------------------------------------------------------ */
@@ -45,7 +42,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  /* ---------- bootstrap from localStorage ---------- */
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) setUser(JSON.parse(stored));
@@ -54,58 +50,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   /* ---------- login ---------- */
   const login = async (email: string, password: string) => {
-  setIsLoading(true);
-  try {
-    // Try employee login first
-    let res = await fetch(`${API_BASE}/employee-login/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    let data;
-    if (res.ok) {
-      data = await res.json();
-    } else {
-      // If employee login fails with 404 or 401, try dealer/company login
-      res = await fetch(`${API_BASE}/login/`, {
+    setIsLoading(true);
+    try {
+      let res = await fetch(`${API_BASE}/employee-login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      if (!res.ok) throw new Error("Invalid credentials");
-      data = await res.json();
+
+      let data;
+      if (res.ok) {
+        data = await res.json();
+      } else {
+        res = await fetch(`${API_BASE}/login/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        if (!res.ok) throw new Error("Invalid credentials");
+        data = await res.json();
+      }
+
+      const loggedInUser: AuthUser = {
+        id: String(data.employee_id ?? data.dealer_id ?? data.company_id),
+        name: data.name,
+        email,
+        role: data.role as UserRole,
+        token: data.token,
+        companyId: data.company_id ? String(data.company_id) : undefined,
+        dealerId: data.dealer_id ? String(data.dealer_id) : undefined,
+        gstNumber: data.gst_no || data.gstNumber || undefined, // store GST number
+      };
+
+      localStorage.setItem("user", JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
+      return true;
+    } catch (err) {
+      console.error("Login failed:", err);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    // Identify role and ID properly
-    const loggedInUser: AuthUser = {
-      id: String(data.employee_id ?? data.dealer_id ?? data.company_id),
-      name: data.name,
-      email,
-      role: data.role as UserRole,
-      token: data.token,
-      companyId: data.company_id ? String(data.company_id) : undefined,
-      dealerId: data.dealer_id ? String(data.dealer_id) : undefined,
-    };
-
-    localStorage.setItem("user", JSON.stringify(loggedInUser));
-    setUser(loggedInUser);
-    return true;
-  } catch (err) {
-    console.error("Login failed:", err);
-    return false;
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-  /* ---------- logout ---------- */
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
   };
 
-  /* ---------- register dealer ---------- */
   const registerDealer = async (newUser: Partial<User>) => {
     setIsLoading(true);
     try {
@@ -124,7 +116,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  /* ---------- register company ---------- */
   const registerCompany = async (newUser: Partial<User>) => {
     setIsLoading(true);
     try {
@@ -161,9 +152,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Consumer hook                                                      */
-/* ------------------------------------------------------------------ */
 export const useAuth = (): AuthContextType => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider");

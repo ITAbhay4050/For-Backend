@@ -12,8 +12,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 
+interface Company {
+  id: number;
+  name: string;
+}
+
 const DealerRegister = () => {
-  const [companies, setCompanies] = useState([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -32,19 +37,26 @@ const DealerRegister = () => {
 
   const [otp, setOtp] = useState('');
   const [showOtp, setShowOtp] = useState(false);
-  const [tempDealerData, setTempDealerData] = useState(null);
+  const [tempDealerData, setTempDealerData] = useState<typeof formData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // State to manage editability of fields
   const [isNameEditable, setIsNameEditable] = useState(true);
   const [isEmailEditable, setIsEmailEditable] = useState(true);
   const [isPanNoEditable, setIsPanNoEditable] = useState(true);
 
+  // Fetch companies
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/register/company/')
+    // CORRECTED: Fetch from /api/companies/ for listing
+    fetch('http://127.0.0.1:8000/api/companies/')
       .then((res) => res.json())
-      .then((data) => setCompanies(data))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCompanies(data);
+        } else {
+          setCompanies([]);
+        }
+      })
       .catch(() =>
         toast({
           title: 'Error',
@@ -54,10 +66,11 @@ const DealerRegister = () => {
       );
   }, []);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // If GST number changes, make fields editable again
+
     if (e.target.name === 'gst_no') {
+      // Reset editable states when GST changes
       setIsNameEditable(true);
       setIsEmailEditable(true);
       setIsPanNoEditable(true);
@@ -68,7 +81,7 @@ const DealerRegister = () => {
     if (!formData.gst_no) {
       toast({
         title: 'Input Required',
-        description: 'Please enter a GST number to fetch data.',
+        description: 'Please enter a GST number.',
         variant: 'destructive',
       });
       return;
@@ -76,24 +89,26 @@ const DealerRegister = () => {
 
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      // CORRECTED: Fetch from /api/party/get-details-by-gst/
       const res = await fetch(
-        `http://127.0.0.1:8000/api/get-dealer-data-by-gst/?gst_no=${formData.gst_no}`
+        `http://127.0.0.1:8000/api/party/get-details-by-gst/?gst_no=${formData.gst_no}`
       );
       if (res.ok) {
         const data = await res.json();
-        setFormData((prevData) => ({
-          ...prevData,
+        setFormData((prev) => ({
+          ...prev,
           name: data.name || '',
           email: data.email || '',
           pan_no: data.pan_no || '',
         }));
+        // Set fields as non-editable after fetching
         setIsNameEditable(false);
         setIsEmailEditable(false);
         setIsPanNoEditable(false);
+
         toast({
-          title: 'Data Fetched',
-          description: 'Dealer data loaded successfully!',
+          title: 'Success',
+          description: 'Dealer data fetched.',
         });
       } else {
         const errorData = await res.json();
@@ -102,25 +117,19 @@ const DealerRegister = () => {
           description: errorData.error || 'Failed to fetch dealer data.',
           variant: 'destructive',
         });
-        setIsNameEditable(true);
-        setIsEmailEditable(true);
-        setIsPanNoEditable(true);
       }
-    } catch (error) {
+    } catch {
       toast({
-        title: 'Network Error',
-        description: 'Could not connect to the server to fetch data.',
+        title: 'Error',
+        description: 'Network error while fetching dealer data.',
         variant: 'destructive',
       });
-      setIsNameEditable(true);
-      setIsEmailEditable(true);
-      setIsPanNoEditable(true);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (formData.newPassword !== formData.confirmPassword) {
@@ -140,15 +149,15 @@ const DealerRegister = () => {
       });
 
       if (res.ok) {
-        setShowOtp(true);
         setTempDealerData(formData);
+        setShowOtp(true);
         toast({
           title: 'OTP Sent',
-          description: 'Please check your email for the OTP.',
+          description: 'Check your email for the OTP.',
         });
       } else {
         toast({
-          title: 'OTP Failed',
+          title: 'Failed',
           description: 'Could not send OTP.',
           variant: 'destructive',
         });
@@ -156,7 +165,7 @@ const DealerRegister = () => {
     } catch {
       toast({
         title: 'Network Error',
-        description: 'Failed to send OTP.',
+        description: 'Unable to send OTP.',
         variant: 'destructive',
       });
     }
@@ -167,7 +176,7 @@ const DealerRegister = () => {
       const res = await fetch('http://127.0.0.1:8000/api/verify-otp/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: tempDealerData.email, otp }),
+        body: JSON.stringify({ email: tempDealerData?.email, otp }),
       });
 
       if (res.ok) {
@@ -176,7 +185,7 @@ const DealerRegister = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...tempDealerData,
-            password: tempDealerData.newPassword,
+            password: tempDealerData?.newPassword,
           }),
         });
 
@@ -187,23 +196,28 @@ const DealerRegister = () => {
           });
           setTimeout(() => navigate('/login'), 2000);
         } else {
+          // Attempt to parse error message from server
+          const errorData = await registerRes.json();
+          const errorMessage = errorData.detail || errorData.email || 'Dealer registration failed.';
           toast({
             title: 'Error',
-            description: 'Registration failed.',
+            description: errorMessage,
             variant: 'destructive',
           });
         }
       } else {
+        const errorData = await res.json();
+        const errorMessage = errorData.detail || 'OTP verification failed.';
         toast({
           title: 'Invalid OTP',
-          description: 'OTP verification failed.',
+          description: errorMessage,
           variant: 'destructive',
         });
       }
     } catch {
       toast({
         title: 'Error',
-        description: 'Something went wrong while verifying OTP.',
+        description: 'Failed to verify OTP or network error during registration.',
         variant: 'destructive',
       });
     }
@@ -223,7 +237,7 @@ const DealerRegister = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* GST Number Field with Get Data Button */}
+              {/* GST Field */}
               <div className="space-y-1">
                 <Label htmlFor="gst_no">GST Number</Label>
                 <div className="flex gap-2">
@@ -231,11 +245,11 @@ const DealerRegister = () => {
                     id="gst_no"
                     name="gst_no"
                     type="text"
-                    placeholder="Enter GST Number"
                     value={formData.gst_no}
                     onChange={handleChange}
-                    required
+                    placeholder="Enter GST Number"
                     className="flex-1"
+                    required
                   />
                   <Button
                     type="button"
@@ -248,63 +262,12 @@ const DealerRegister = () => {
                 </div>
               </div>
 
+              {/* Name, Email, PAN */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Dealer Name */}
-                <div className="space-y-1">
-                  <Label htmlFor="name">Dealer Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    type="text"
-                    placeholder="Dealer Name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    readOnly={!isNameEditable}
-                    className={!isNameEditable ? 'bg-gray-100 cursor-not-allowed' : ''}
-                  />
-                </div>
-
-                {/* Email */}
-                <div className="space-y-1">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="Email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    readOnly={!isEmailEditable}
-                    className={!isEmailEditable ? 'bg-gray-100 cursor-not-allowed' : ''}
-                  />
-                </div>
-
-                {/* PAN Number */}
-                <div className="space-y-1">
-                  <Label htmlFor="pan_no">PAN Number</Label>
-                  <Input
-                    id="pan_no"
-                    name="pan_no"
-                    type="text"
-                    placeholder="PAN Number"
-                    value={formData.pan_no}
-                    onChange={handleChange}
-                    required
-                    readOnly={!isPanNoEditable}
-                    className={!isPanNoEditable ? 'bg-gray-100 cursor-not-allowed' : ''}
-                  />
-                </div>
-
-                {/* Other fields */}
                 {[
-                  { name: 'phone', label: 'Phone', type: 'tel' },
-                  { name: 'address', label: 'Address' },
-                  { name: 'city', label: 'City' },
-                  { name: 'state', label: 'State' },
-                  { name: 'country', label: 'Country' },
-                  { name: 'pin_code', label: 'PIN Code', type: 'text' },
+                  { name: 'name', label: 'Dealer Name', editable: isNameEditable },
+                  { name: 'email', label: 'Email', editable: isEmailEditable, type: 'email' },
+                  { name: 'pan_no', label: 'PAN Number', editable: isPanNoEditable },
                 ].map((field) => (
                   <div key={field.name} className="space-y-1">
                     <Label htmlFor={field.name}>{field.label}</Label>
@@ -312,8 +275,31 @@ const DealerRegister = () => {
                       id={field.name}
                       name={field.name}
                       type={field.type || 'text'}
-                      placeholder={field.label}
-                      value={formData[field.name]}
+                      value={formData[field.name as keyof typeof formData]}
+                      onChange={handleChange}
+                      readOnly={!field.editable}
+                      className={!field.editable ? 'bg-gray-100 cursor-not-allowed' : ''}
+                      required
+                    />
+                  </div>
+                ))}
+
+                {/* Other Fields */}
+                {[
+                  'phone',
+                  'address',
+                  'city',
+                  'state',
+                  'country',
+                  'pin_code',
+                ].map((field) => (
+                  <div key={field} className="space-y-1">
+                    <Label htmlFor={field}>{field.replace('_', ' ').toUpperCase()}</Label>
+                    <Input
+                      id={field}
+                      name={field}
+                      type="text"
+                      value={formData[field as keyof typeof formData]}
                       onChange={handleChange}
                       required
                     />
@@ -341,7 +327,7 @@ const DealerRegister = () => {
                 </div>
               </div>
 
-              {/* Password Fields */}
+              {/* Password */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label htmlFor="newPassword">New Password</Label>
@@ -367,7 +353,7 @@ const DealerRegister = () => {
                 </div>
               </div>
 
-              {/* OTP Logic */}
+              {/* OTP */}
               {!showOtp ? (
                 <Button
                   type="submit"
@@ -383,9 +369,9 @@ const DealerRegister = () => {
                       id="otp"
                       name="otp"
                       type="text"
-                      placeholder="Enter OTP sent to email"
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
+                      placeholder="Enter OTP sent to email"
                       required
                     />
                   </div>

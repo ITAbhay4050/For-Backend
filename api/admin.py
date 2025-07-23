@@ -23,7 +23,7 @@ class LoginRecordAdmin(admin.ModelAdmin):
 
 @admin.register(MachineInstallation)
 class MachineInstallationAdmin(admin.ModelAdmin):
-    list_display = ['model_number', 'serial_number', 'installation_date', 'submitted_by_name']
+    list_display = [ 'batch_number','installation_date', 'submitted_by_name']
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
