@@ -29,6 +29,7 @@ import Dealers from "./pages/Dealers";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import DealerStock from "./pages/DealerStock";   // <-- New import
 
 // -----------------------------------------------------------------------------
 // React‑Query Client
@@ -70,6 +71,25 @@ export default function App() {
                 <Route path="/tasks" element={<Tasks />} />
                 <Route path="/tickets" element={<Tickets />} />
                 <Route path="/profile" element={<Profile />} />
+              </Route>
+
+              {/* ----------------------------------------------------------------- */}
+              {/* Dealer Stock – Accessible to Admins, Company Users, and Dealers */}
+              {/* ----------------------------------------------------------------- */}
+              <Route
+                element={
+                  <PrivateRoute
+                    allowedRoles={[
+                      UserRole.APPLICATION_ADMIN,
+                      UserRole.COMPANY_ADMIN,
+                      UserRole.COMPANY_EMPLOYEE,
+                      UserRole.DEALER_ADMIN,
+                      UserRole.DEALER_EMPLOYEE,
+                    ]}
+                  />
+                }
+              >
+                <Route path="/dealer-stock" element={<DealerStock />} />
               </Route>
 
               {/* ----------------------------------------------------------------- */}

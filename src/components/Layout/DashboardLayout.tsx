@@ -2,18 +2,21 @@ import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Building2, 
-  Store, 
-  Boxes, 
-  ClipboardList, 
-  TicketCheck, 
+
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  Store,
+  Boxes,
+  ClipboardList,
+  TicketCheck,
   LogOut,
   UserCircle,
-  Settings
+  Settings,
+  Package // ✅ NEW ICON
 } from 'lucide-react';
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from "@/components/ui/separator";
@@ -27,13 +30,13 @@ type SidebarLinkProps = {
 const SidebarLink = ({ to, icon, label }: SidebarLinkProps) => {
   const location = useLocation();
   const isActive = location.pathname === to;
-  
+
   return (
     <Link
       to={to}
       className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-        isActive 
-          ? 'bg-slate-200 text-slate-900' 
+        isActive
+          ? 'bg-slate-200 text-slate-900'
           : 'hover:bg-slate-100'
       }`}
     >
@@ -56,9 +59,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     navigate('/login');
   };
 
-  // Role-based navigation links
+  // ✅ UPDATED NAV LINKS
   const getNavLinks = () => {
     switch (user?.role) {
+
       case UserRole.APPLICATION_ADMIN:
         return (
           <>
@@ -69,9 +73,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <SidebarLink to="/machines" icon={<Boxes size={20} />} label="Machines" />
             <SidebarLink to="/tasks" icon={<ClipboardList size={20} />} label="Tasks" />
             <SidebarLink to="/tickets" icon={<TicketCheck size={20} />} label="Tickets" />
+
+            {/* ✅ NEW TAB */}
+            <SidebarLink to="/dealer-stock" icon={<Package size={20} />} label="Dealer Stock" />
           </>
         );
-      
+
       case UserRole.COMPANY_ADMIN:
         return (
           <>
@@ -81,9 +88,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <SidebarLink to="/machines" icon={<Boxes size={20} />} label="Machines" />
             <SidebarLink to="/tasks" icon={<ClipboardList size={20} />} label="Tasks" />
             <SidebarLink to="/tickets" icon={<TicketCheck size={20} />} label="Tickets" />
+
+            {/* ✅ NEW TAB */}
+            <SidebarLink to="/dealer-stock" icon={<Package size={20} />} label="Dealer Stock" />
           </>
         );
-        
+
       case UserRole.COMPANY_EMPLOYEE:
         return (
           <>
@@ -91,9 +101,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <SidebarLink to="/machines" icon={<Boxes size={20} />} label="Machines" />
             <SidebarLink to="/tasks" icon={<ClipboardList size={20} />} label="Tasks" />
             <SidebarLink to="/tickets" icon={<TicketCheck size={20} />} label="Tickets" />
+
+            {/* ✅ OPTIONAL */}
+            <SidebarLink to="/dealer-stock" icon={<Package size={20} />} label="Dealer Stock" />
           </>
         );
-        
+
       case UserRole.DEALER_ADMIN:
         return (
           <>
@@ -102,9 +115,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <SidebarLink to="/machines" icon={<Boxes size={20} />} label="Machines" />
             <SidebarLink to="/tasks" icon={<ClipboardList size={20} />} label="Tasks" />
             <SidebarLink to="/tickets" icon={<TicketCheck size={20} />} label="Tickets" />
+
+            {/* ✅ MOST IMPORTANT (Dealer use case) */}
+            <SidebarLink to="/dealer-stock" icon={<Package size={20} />} label="Dealer Stock" />
           </>
         );
-        
+
       case UserRole.DEALER_EMPLOYEE:
         return (
           <>
@@ -112,15 +128,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <SidebarLink to="/machines" icon={<Boxes size={20} />} label="Machines" />
             <SidebarLink to="/tasks" icon={<ClipboardList size={20} />} label="Tasks" />
             <SidebarLink to="/tickets" icon={<TicketCheck size={20} />} label="Tickets" />
+
+            {/* ✅ OPTIONAL */}
+            <SidebarLink to="/dealer-stock" icon={<Package size={20} />} label="Dealer Stock" />
           </>
         );
-        
+
       default:
         return null;
     }
   };
 
-  // Role-based styling
   const getRoleColor = () => {
     switch (user?.role) {
       case UserRole.APPLICATION_ADMIN:
@@ -136,7 +154,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     }
   };
 
-  // Get role display name
   const getRoleName = () => {
     switch (user?.role) {
       case UserRole.APPLICATION_ADMIN:
@@ -156,15 +173,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="flex h-screen bg-gray-50">
+
       {/* Sidebar */}
       <div className="w-64 bg-white shadow-lg">
         <div className="h-full flex flex-col">
-          {/* Logo & App Name */}
+
+          {/* Logo */}
           <div className={`${getRoleColor()} text-white p-4`}>
             <h1 className="text-xl font-bold">RBAC System</h1>
             <p className="text-sm opacity-90">Machine Management</p>
           </div>
-          
+
           {/* User Info */}
           <div className="p-4 border-b">
             <div className="flex items-center gap-3">
@@ -179,33 +198,34 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </div>
             </div>
           </div>
-          
-          {/* Navigation Links */}
+
+          {/* Navigation */}
           <nav className="flex-1 p-4 overflow-y-auto">
             {getNavLinks()}
-            
+
             <Separator className="my-4" />
-            
-            {/* Profile & Settings */}
+
             <SidebarLink to="/profile" icon={<Settings size={20} />} label="Profile & Settings" />
           </nav>
-          
+
           {/* Logout */}
           <div className="p-4 mt-auto border-t">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2"
             >
               <LogOut size={16} />
-              <span>Logout</span>
+              Logout
             </Button>
           </div>
+
         </div>
       </div>
-      
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+
         {/* Header */}
         <header className="bg-white shadow-sm p-4">
           <div className="flex justify-between items-center">
@@ -218,11 +238,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
           </div>
         </header>
-        
-        {/* Main Content */}
+
+        {/* Content */}
         <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
           {children}
         </main>
+
       </div>
     </div>
   );
