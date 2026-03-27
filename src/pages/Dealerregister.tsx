@@ -59,7 +59,7 @@ const DealerRegister = () => {
 
   // Fetch companies
   useEffect(() => {
-    fetch(`${API_BASE}/register/company/`)
+    fetch(`${API_BASE}/api/register/company/`)
       .then((res) => res.json())
       .then((data) => {
         console.log("🏢 Company List API Response:", data);
@@ -111,7 +111,7 @@ const DealerRegister = () => {
     setIsLoading(true);
     try {
       const res = await fetch(
-        `${API_BASE}/party/get-details-by-gst/?gst_no=${formData.gst_no}`
+        `${API_BASE}/api/party/get-details-by-gst/?gst_no=${formData.gst_no}`
       );
 
       if (res.ok) {
@@ -168,7 +168,7 @@ const DealerRegister = () => {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/send-otp/`, {
+      const res = await fetch(`${API_BASE}/api/send-otp/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -205,7 +205,7 @@ const DealerRegister = () => {
 
   const handleVerifyOtp = async () => {
     try {
-      const res = await fetch(`${API_BASE}/verify-otp/`, {
+      const res = await fetch(`${API_BASE}/api/verify-otp/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -220,7 +220,7 @@ const DealerRegister = () => {
       console.log("🔐 Verify OTP Response:", otpData);
 
       if (res.ok) {
-        const registerRes = await fetch(`${API_BASE}/register/dealer/`, {
+        const registerRes = await fetch(`${API_BASE}/api/register/dealer/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

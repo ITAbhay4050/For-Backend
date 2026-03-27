@@ -324,7 +324,7 @@ const UsersPage = () => {
   /* ---------------------------- LOAD DATA ------------------------ */
   const loadCompanies = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/companies/`, {
+      const res = await fetch(`${API_BASE}/api/companies/`, {
         headers: makeAuthHeaders(token),
       });
       if (!res.ok) {
@@ -347,7 +347,7 @@ const UsersPage = () => {
 
   const loadDealers = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/dealers/`, {
+      const res = await fetch(`${API_BASE}/api/dealers/`, {
         headers: makeAuthHeaders(token),
       });
       if (!res.ok) {
@@ -371,7 +371,7 @@ const UsersPage = () => {
   const loadUsers = useCallback(async (currentDealers: Dealer[], currentCompanies: Company[]) => { // Accept dealers and companies as arguments
     setIsTableLoading(true); // Set table loading state
     try {
-      const res = await fetch(`${API_BASE}/register/employee/`, {
+      const res = await fetch(`${API_BASE}/api/register/employee/`, {
         headers: makeAuthHeaders(token),
       });
 
@@ -683,7 +683,7 @@ const UsersPage = () => {
         payload.dealer = newUser.dealerId;
       }
 
-      const response = await fetch(`${API_BASE}/register/employee/`, {
+      const response = await fetch(`${API_BASE}/api/register/employee/`, {
         method: "POST",
         headers: makeAuthHeaders(token),
         body: JSON.stringify(payload),
@@ -736,7 +736,7 @@ const UsersPage = () => {
 
   const handleDeleteUser = useCallback(async (id: string) => {
     try {
-      const response = await fetch(`${API_BASE}/employee/${id}/`, {
+      const response = await fetch(`${API_BASE}/api/employee/${id}/`, {
         method: "DELETE",
         headers: makeAuthHeaders(token),
       });

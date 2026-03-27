@@ -19,6 +19,7 @@ from django.http import JsonResponse
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from api.views import LoginView
 
 def home(request):
     return JsonResponse({"message": "Backend is live on Render"})
@@ -26,6 +27,7 @@ def home(request):
 urlpatterns = [
     path("", home),
     path("admin/", admin.site.urls),
+    path("login/", LoginView.as_view()),
     path("api/", include("api.urls")),
 ]
 

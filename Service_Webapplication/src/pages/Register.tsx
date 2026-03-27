@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { API_BASE } from "@/lib/apiConfig";
 import { toast } from '@/components/ui/use-toast';
 import { Cog as Gear, Building2, Mail, Phone, MapPin, CreditCard, ShieldCheck } from 'lucide-react';
 import companyLogo from '@/assets/logo.jpg'; // Adjust path if needed
