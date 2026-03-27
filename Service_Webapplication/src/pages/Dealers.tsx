@@ -92,7 +92,7 @@ const Dealers = () => {
       setLoading(true);
       setError(null);
 
-      const dRes = await fetch(`${API_BASE}/dealers/`, {
+      const dRes = await fetch(`${API_BASE}/api/dealers/`, {
         headers: makeAuthHeaders(token),
       });
       if (!dRes.ok) throw new Error("Could not fetch dealers");
@@ -104,7 +104,7 @@ const Dealers = () => {
         user?.role === UserRole.APPLICATION_ADMIN ||
         user?.role === UserRole.COMPANY_ADMIN
       ) {
-        const cRes = await fetch(`${API_BASE}/companies/`, {
+        const cRes = await fetch(`${API_BASE}/api/companies/`, {
           headers: makeAuthHeaders(token),
         });
         if (!cRes.ok) throw new Error("Could not fetch companies");
@@ -158,7 +158,7 @@ const Dealers = () => {
 
   const handleDeleteDealer = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE}/dealers/${id}/`, {
+      const res = await fetch(`${API_BASE}/api/dealers/${id}/`, {
         method: "DELETE",
         headers: makeAuthHeaders(token),
       });

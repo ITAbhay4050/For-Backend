@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 const login = async (email: string, password: string) => {
   setIsLoading(true);
   try {
-    const res = await fetch(`${API_BASE}/login/`, {
+    const res = await fetch(`${API_BASE}/api/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -81,7 +81,7 @@ const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
       // Add isDirect: true if you want to bypass OTP (adjust as needed)
-      const res = await fetch(`${API_BASE}/dealers/`, {
+      const res = await fetch(`${API_BASE}/api/dealers/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...newUser, isDirect: true }), // ⬅️ use /dealers/
@@ -99,7 +99,7 @@ const login = async (email: string, password: string) => {
   const registerCompany = async (newUser: Partial<User>) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/register/company/`, {
+      const res = await fetch(`${API_BASE}/api/register/company/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newUser),

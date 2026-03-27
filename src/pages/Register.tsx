@@ -70,7 +70,7 @@ const Register = () => {
     try {
       console.log("API BASE:", API_BASE);
 
-      const response = await fetch(`${API_BASE}/register/company/`, {
+      const response = await fetch(`${API_BASE}/api/register/company/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
