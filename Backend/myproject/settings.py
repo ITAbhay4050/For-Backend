@@ -23,7 +23,7 @@ ALLOWED_HOSTS = [
     host.strip()
     for host in os.getenv(
         "DJ_ALLOWED_HOSTS",
-        "127.0.0.1,localhost,comptech-backend.onrender.com"
+        "127.0.0.1,localhost,comptech-service-backend.onrender.com"
     ).split(",")
 ]
 
@@ -164,15 +164,13 @@ CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
     "https://comptechabhay.netlify.app",
+    "https://comptech-service.netlify.app",
 ]
 
-# -----------------------------------------------------------------------------
-# CSRF Trusted Origins
-# -----------------------------------------------------------------------------
 CSRF_TRUSTED_ORIGINS = [
     "https://comptechabhay.netlify.app",
+    "https://comptech-service.netlify.app",
 ]
-
 # -----------------------------------------------------------------------------
 # Email (SMTP) - use Render env vars
 # -----------------------------------------------------------------------------
