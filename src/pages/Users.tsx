@@ -59,7 +59,7 @@ import { toast } from "@/components/ui/use-toast";
 /* ------------------------------------------------------------------ */
 /* ENV / HELPERS                                                      */
 /* ------------------------------------------------------------------ */
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE;
 const makeAuthHeaders = (token?: string) =>
   token
     ? { Authorization: `Token ${token}`, "Content-Type": "application/json" }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { API_BASE } from '@/lib/apiConfig';
 import { Input } from '@/components/ui/input';
 import {
   Card,
@@ -11,8 +12,16 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
-import { Cog as Gear, Building2, Mail, Phone, MapPin, CreditCard, ShieldCheck } from 'lucide-react';
-import companyLogo from '@/assets/logo.jpg'; // Adjust path if needed
+import {
+  Cog as Gear,
+  Building2,
+  Mail,
+  Phone,
+  MapPin,
+  CreditCard,
+  ShieldCheck,
+} from 'lucide-react';
+import companyLogo from '@/assets/logo.jpg';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -34,12 +43,13 @@ const Register = () => {
   const [isPageLoaded, setIsPageLoaded] = useState(false);
   const navigate = useNavigate();
 
-  // Fade-in effect
   useEffect(() => {
     setTimeout(() => setIsPageLoaded(true), 100);
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -58,9 +68,13 @@ const Register = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/register/company/', {
+      console.log("API BASE:", API_BASE);
+
+      const response = await fetch(`${API_BASE}/register/company/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           name: formData.name,
           address: formData.address,
@@ -76,22 +90,37 @@ const Register = () => {
         }),
       });
 
-      const data = await response.json();
+      let data: any = {};
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
+
+      console.log("Register response:", data);
 
       if (response.ok) {
         toast({
           title: 'Registration Successful',
           description: 'Your company has been registered successfully.',
         });
+
         navigate('/login');
       } else {
         toast({
           title: 'Registration Failed',
-          description: data.message || 'Something went wrong. Please try again.',
+          description:
+            data.detail ||
+            data.error ||
+            data.message ||
+            JSON.stringify(data) ||
+            'Something went wrong. Please try again.',
           variant: 'destructive',
         });
       }
     } catch (error) {
+      console.error("Register Error:", error);
+
       toast({
         title: 'Server Error',
         description: 'Unable to register. Please try again later.',
@@ -117,7 +146,7 @@ const Register = () => {
         </div>
       </div>
 
-      {/* Header with logo and company name */}
+      {/* Header */}
       <header className="relative z-20 bg-white/90 backdrop-blur-md border-b border-red-100 shadow-md">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -140,7 +169,7 @@ const Register = () => {
         </div>
       </header>
 
-      {/* Main content with fade-in */}
+      {/* Main */}
       <div
         className={`flex-1 flex items-center justify-center px-4 py-8 sm:py-12 transition-all duration-700 ${
           isPageLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
@@ -160,7 +189,6 @@ const Register = () => {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {/* GST Number */}
                   <div className="space-y-2">
                     <Label htmlFor="gst_no" className="text-gray-700 font-medium flex items-center gap-2">
                       <CreditCard className="w-4 h-4 text-red-600" />
@@ -178,7 +206,6 @@ const Register = () => {
                     />
                   </div>
 
-                  {/* Company Name */}
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-gray-700 font-medium flex items-center gap-2">
                       <Building2 className="w-4 h-4 text-red-600" />
@@ -196,7 +223,6 @@ const Register = () => {
                     />
                   </div>
 
-                  {/* Address */}
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="address" className="text-gray-700 font-medium flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-red-600" />
@@ -214,7 +240,6 @@ const Register = () => {
                     />
                   </div>
 
-                  {/* City, State, Country */}
                   <div className="space-y-2">
                     <Label htmlFor="city" className="text-gray-700 font-medium">City</Label>
                     <Input
@@ -228,6 +253,7 @@ const Register = () => {
                       className="bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="state" className="text-gray-700 font-medium">State</Label>
                     <Input
@@ -241,6 +267,7 @@ const Register = () => {
                       className="bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="country" className="text-gray-700 font-medium">Country</Label>
                     <Input
@@ -255,7 +282,6 @@ const Register = () => {
                     />
                   </div>
 
-                  {/* PIN Code, Phone, Email, PAN */}
                   <div className="space-y-2">
                     <Label htmlFor="pin_code" className="text-gray-700 font-medium">PIN Code</Label>
                     <Input
@@ -269,6 +295,7 @@ const Register = () => {
                       className="bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="phone" className="text-gray-700 font-medium flex items-center gap-2">
                       <Phone className="w-4 h-4 text-red-600" />
@@ -285,6 +312,7 @@ const Register = () => {
                       className="bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-gray-700 font-medium flex items-center gap-2">
                       <Mail className="w-4 h-4 text-red-600" />
@@ -301,6 +329,7 @@ const Register = () => {
                       className="bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="pan_no" className="text-gray-700 font-medium flex items-center gap-2">
                       <CreditCard className="w-4 h-4 text-red-600" />
@@ -319,7 +348,6 @@ const Register = () => {
                   </div>
                 </div>
 
-                {/* Password Fields */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label htmlFor="newPassword" className="text-gray-700 font-medium">New Password</Label>
@@ -334,6 +362,7 @@ const Register = () => {
                       className="bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">Confirm Password</Label>
                     <Input
@@ -349,7 +378,6 @@ const Register = () => {
                   </div>
                 </div>
 
-                {/* Submit Button */}
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-2.5 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
@@ -381,7 +409,10 @@ const Register = () => {
                 <div className="text-center text-sm mt-4">
                   <span className="text-gray-600">
                     Already registered?{' '}
-                    <Link to="/login" className="text-red-600 hover:text-red-800 font-medium underline underline-offset-4 transition-colors">
+                    <Link
+                      to="/login"
+                      className="text-red-600 hover:text-red-800 font-medium underline underline-offset-4 transition-colors"
+                    >
                       Login
                     </Link>
                   </span>
@@ -392,7 +423,6 @@ const Register = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="relative z-10 py-4 text-center text-xs text-gray-500 bg-white/50 backdrop-blur-sm">
         <p>© {new Date().getFullYear()} Comptech. All rights reserved.</p>
       </footer>

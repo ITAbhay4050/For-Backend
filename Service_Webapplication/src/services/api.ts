@@ -8,7 +8,11 @@ import {
   MachineDetailsResponse
 } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE;
+
+if (!API_BASE_URL) {
+  throw new Error("VITE_API_BASE is not set in environment");
+}
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

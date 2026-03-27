@@ -1,18 +1,27 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { toast } from '@/components/ui/use-toast';
-import { Cog as Gear, ShieldCheck, Building2, Mail, Phone, MapPin, CreditCard } from 'lucide-react';
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
+import {
+  Cog as Gear,
+  ShieldCheck,
+  Building2,
+  Mail,
+  Phone,
+  MapPin,
+  CreditCard,
+} from "lucide-react";
 import companyLogo from "@/assets/logo.jpg";
+import { API_BASE } from "@/lib/apiConfig";
 
 interface Company {
   id: number;
@@ -22,22 +31,22 @@ interface Company {
 const DealerRegister = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    state: '',
-    country: '',
-    pin_code: '',
-    gst_no: '',
-    pan_no: '',
-    company: '',
-    newPassword: '',
-    confirmPassword: '',
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    country: "",
+    pin_code: "",
+    gst_no: "",
+    pan_no: "",
+    company: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState("");
   const [showOtp, setShowOtp] = useState(false);
   const [tempDealerData, setTempDealerData] = useState<typeof formData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,33 +59,39 @@ const DealerRegister = () => {
 
   // Fetch companies
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/companies/')
+    fetch(`${API_BASE}/register/company/`)
       .then((res) => res.json())
       .then((data) => {
+        console.log("🏢 Company List API Response:", data);
+
         if (Array.isArray(data)) {
           setCompanies(data);
+        } else if (data.results && Array.isArray(data.results)) {
+          setCompanies(data.results);
         } else {
           setCompanies([]);
         }
       })
-      .catch(() =>
+      .catch((error) => {
+        console.error("❌ Failed to load companies:", error);
         toast({
-          title: 'Error',
-          description: 'Failed to load company list.',
-          variant: 'destructive',
-        })
-      );
+          title: "Error",
+          description: "Failed to load company list.",
+          variant: "destructive",
+        });
+      });
   }, []);
 
   // Fade-in animation
   useEffect(() => {
-    setTimeout(() => setIsPageLoaded(true), 100);
+    const timer = setTimeout(() => setIsPageLoaded(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-    if (e.target.name === 'gst_no') {
+    if (e.target.name === "gst_no") {
       setIsNameEditable(true);
       setIsEmailEditable(true);
       setIsPanNoEditable(true);
@@ -86,9 +101,9 @@ const DealerRegister = () => {
   const handleGetDealerData = async () => {
     if (!formData.gst_no) {
       toast({
-        title: 'Input Required',
-        description: 'Please enter a GST number.',
-        variant: 'destructive',
+        title: "Input Required",
+        description: "Please enter a GST number.",
+        variant: "destructive",
       });
       return;
     }
@@ -96,37 +111,44 @@ const DealerRegister = () => {
     setIsLoading(true);
     try {
       const res = await fetch(
-        `http://127.0.0.1:8000/api/party/get-details-by-gst/?gst_no=${formData.gst_no}`
+        `${API_BASE}/party/get-details-by-gst/?gst_no=${formData.gst_no}`
       );
+
       if (res.ok) {
         const data = await res.json();
+        console.log("✅ GST Data:", data);
+
         setFormData((prev) => ({
           ...prev,
-          name: data.name || '',
-          email: data.email || '',
-          pan_no: data.pan_no || '',
+          name: data.name || "",
+          email: data.email || "",
+          pan_no: data.pan_no || "",
         }));
+
         setIsNameEditable(false);
         setIsEmailEditable(false);
         setIsPanNoEditable(false);
 
         toast({
-          title: 'Success',
-          description: 'Dealer data fetched.',
+          title: "Success",
+          description: "Dealer data fetched.",
         });
       } else {
-        const errorData = await res.json();
+        const errorData = await res.json().catch(() => ({}));
+        console.error("❌ GST Fetch Error:", errorData);
+
         toast({
-          title: 'Error',
-          description: errorData.error || 'Failed to fetch dealer data.',
-          variant: 'destructive',
+          title: "Error",
+          description: errorData.error || "Failed to fetch dealer data.",
+          variant: "destructive",
         });
       }
-    } catch {
+    } catch (error) {
+      console.error("❌ Network error while fetching GST data:", error);
       toast({
-        title: 'Error',
-        description: 'Network error while fetching dealer data.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Network error while fetching dealer data.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -138,97 +160,121 @@ const DealerRegister = () => {
 
     if (formData.newPassword !== formData.confirmPassword) {
       toast({
-        title: 'Password Mismatch',
-        description: 'Passwords do not match.',
-        variant: 'destructive',
+        title: "Password Mismatch",
+        description: "Passwords do not match.",
+        variant: "destructive",
       });
       return;
     }
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/send-otp/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`${API_BASE}/send-otp/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ email: formData.email }),
       });
+
+      const data = await res.json().catch(() => ({}));
+      console.log("📨 Send OTP Response:", data);
 
       if (res.ok) {
         setTempDealerData(formData);
         setShowOtp(true);
         toast({
-          title: 'OTP Sent',
-          description: 'Check your email for the OTP.',
+          title: "OTP Sent",
+          description: "Check your email for the OTP.",
         });
       } else {
         toast({
-          title: 'Failed',
-          description: 'Could not send OTP.',
-          variant: 'destructive',
+          title: "Failed",
+          description: data.error || "Could not send OTP.",
+          variant: "destructive",
         });
       }
-    } catch {
+    } catch (error) {
+      console.error("❌ OTP send error:", error);
       toast({
-        title: 'Network Error',
-        description: 'Unable to send OTP.',
-        variant: 'destructive',
+        title: "Network Error",
+        description: "Unable to send OTP.",
+        variant: "destructive",
       });
     }
   };
 
   const handleVerifyOtp = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/verify-otp/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: tempDealerData?.email, otp }),
+      const res = await fetch(`${API_BASE}/verify-otp/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: tempDealerData?.email,
+          otp,
+        }),
       });
 
+      const otpData = await res.json().catch(() => ({}));
+      console.log("🔐 Verify OTP Response:", otpData);
+
       if (res.ok) {
-        const registerRes = await fetch('http://127.0.0.1:8000/api/dealers/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const registerRes = await fetch(`${API_BASE}/register/dealer/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             ...tempDealerData,
             password: tempDealerData?.newPassword,
           }),
         });
 
+        const registerData = await registerRes.json().catch(() => ({}));
+        console.log("📝 Dealer Register Response:", registerData);
+
         if (registerRes.ok) {
           toast({
-            title: 'Success',
-            description: 'Dealer registered successfully!',
+            title: "Success",
+            description: "Dealer registered successfully!",
           });
-          setTimeout(() => navigate('/login'), 2000);
+
+          setTimeout(() => navigate("/login"), 2000);
         } else {
-          const errorData = await registerRes.json();
-          const errorMessage = errorData.detail || errorData.email || 'Dealer registration failed.';
+          const errorMessage =
+            registerData.detail ||
+            registerData.email ||
+            registerData.error ||
+            "Dealer registration failed.";
+
           toast({
-            title: 'Error',
+            title: "Error",
             description: errorMessage,
-            variant: 'destructive',
+            variant: "destructive",
           });
         }
       } else {
-        const errorData = await res.json();
-        const errorMessage = errorData.detail || 'OTP verification failed.';
+        const errorMessage = otpData.detail || otpData.error || "OTP verification failed.";
+
         toast({
-          title: 'Invalid OTP',
+          title: "Invalid OTP",
           description: errorMessage,
-          variant: 'destructive',
+          variant: "destructive",
         });
       }
-    } catch {
+    } catch (error) {
+      console.error("❌ OTP verify / register error:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to verify OTP or network error during registration.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to verify OTP or network error during registration.",
+        variant: "destructive",
       });
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-black relative overflow-hidden">
-      {/* Background gears */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -left-40 -top-40 w-80 h-80">
           <Gear className="w-full h-full text-red-500/10 gear-animation origin-center" />
@@ -241,7 +287,6 @@ const DealerRegister = () => {
         </div>
       </div>
 
-      {/* Header with logo */}
       <header className="relative z-20 bg-white/90 backdrop-blur-md border-b border-red-100 shadow-md">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -251,7 +296,7 @@ const DealerRegister = () => {
                 alt="Comptech Logo"
                 className="h-10 sm:h-12 w-auto object-contain"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).style.display = "none";
                 }}
               />
             </div>
@@ -267,10 +312,9 @@ const DealerRegister = () => {
         </div>
       </header>
 
-      {/* Main content with fade-in */}
       <div
         className={`flex-1 flex items-center justify-center px-4 py-8 sm:py-12 transition-all duration-700 ${
-          isPageLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          isPageLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >
         <div className="w-full max-w-3xl relative z-10">
@@ -286,7 +330,6 @@ const DealerRegister = () => {
 
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* GST section */}
                 <div className="space-y-2">
                   <Label htmlFor="gst_no" className="text-gray-700 font-medium flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-red-600" />
@@ -309,14 +352,12 @@ const DealerRegister = () => {
                       disabled={!formData.gst_no || isLoading}
                       className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300"
                     >
-                      {isLoading ? 'Fetching...' : 'Get Data'}
+                      {isLoading ? "Fetching..." : "Get Data"}
                     </Button>
                   </div>
                 </div>
 
-                {/* Main form fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Name */}
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-gray-700 font-medium flex items-center gap-2">
                       <Building2 className="w-4 h-4 text-red-600" />
@@ -329,12 +370,11 @@ const DealerRegister = () => {
                       value={formData.name}
                       onChange={handleChange}
                       readOnly={!isNameEditable}
-                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${!isNameEditable ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${!isNameEditable ? "bg-gray-50 cursor-not-allowed" : ""}`}
                       required
                     />
                   </div>
 
-                  {/* Email */}
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-gray-700 font-medium flex items-center gap-2">
                       <Mail className="w-4 h-4 text-red-600" />
@@ -347,12 +387,11 @@ const DealerRegister = () => {
                       value={formData.email}
                       onChange={handleChange}
                       readOnly={!isEmailEditable}
-                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${!isEmailEditable ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${!isEmailEditable ? "bg-gray-50 cursor-not-allowed" : ""}`}
                       required
                     />
                   </div>
 
-                  {/* PAN */}
                   <div className="space-y-2">
                     <Label htmlFor="pan_no" className="text-gray-700 font-medium flex items-center gap-2">
                       <CreditCard className="w-4 h-4 text-red-600" />
@@ -365,12 +404,11 @@ const DealerRegister = () => {
                       value={formData.pan_no}
                       onChange={handleChange}
                       readOnly={!isPanNoEditable}
-                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${!isPanNoEditable ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${!isPanNoEditable ? "bg-gray-50 cursor-not-allowed" : ""}`}
                       required
                     />
                   </div>
 
-                  {/* Phone */}
                   <div className="space-y-2">
                     <Label htmlFor="phone" className="text-gray-700 font-medium flex items-center gap-2">
                       <Phone className="w-4 h-4 text-red-600" />
@@ -387,7 +425,6 @@ const DealerRegister = () => {
                     />
                   </div>
 
-                  {/* Address */}
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="address" className="text-gray-700 font-medium flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-red-600" />
@@ -404,7 +441,6 @@ const DealerRegister = () => {
                     />
                   </div>
 
-                  {/* City, State, Country, Pin Code */}
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
                     <Input
@@ -417,6 +453,7 @@ const DealerRegister = () => {
                       required
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="state">State</Label>
                     <Input
@@ -429,6 +466,7 @@ const DealerRegister = () => {
                       required
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="country">Country</Label>
                     <Input
@@ -441,6 +479,7 @@ const DealerRegister = () => {
                       required
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="pin_code">Pin Code</Label>
                     <Input
@@ -454,7 +493,6 @@ const DealerRegister = () => {
                     />
                   </div>
 
-                  {/* Company selection */}
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="company" className="text-gray-700 font-medium flex items-center gap-2">
                       <Building2 className="w-4 h-4 text-red-600" />
@@ -478,7 +516,6 @@ const DealerRegister = () => {
                   </div>
                 </div>
 
-                {/* Password fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
@@ -492,6 +529,7 @@ const DealerRegister = () => {
                       required
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
                     <Input
@@ -506,7 +544,6 @@ const DealerRegister = () => {
                   </div>
                 </div>
 
-                {/* OTP section */}
                 {!showOtp ? (
                   <Button
                     type="submit"
@@ -543,8 +580,11 @@ const DealerRegister = () => {
                 )}
 
                 <div className="text-center text-sm mt-4">
-                  Already registered?{' '}
-                  <Link to="/login" className="text-red-600 hover:text-red-800 font-medium underline underline-offset-4 transition-colors">
+                  Already registered?{" "}
+                  <Link
+                    to="/login"
+                    className="text-red-600 hover:text-red-800 font-medium underline underline-offset-4 transition-colors"
+                  >
                     Login
                   </Link>
                 </div>
@@ -554,7 +594,6 @@ const DealerRegister = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="relative z-10 py-4 text-center text-xs text-gray-500 bg-white/50 backdrop-blur-sm">
         <p>© {new Date().getFullYear()} Comptech. All rights reserved.</p>
       </footer>
