@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: comptech-backend
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn myproject.wsgi:application"
+    envVars:
+      - key: DJ_DEBUG
+        value: False
+      - key: DJ_ALLOWED_HOSTS
+        value: comptech-backend.onrender.com,127.0.0.1,localhost
