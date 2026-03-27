@@ -58,7 +58,7 @@ const Register = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/register/company/', {
+      const response = await fetch(`${API_BASE}/api/register/company/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
+import { API_BASE } from "@/lib/apiconfig";
 
 import { Dealer, User, UserRole, UserStatus } from "@/types";
 
@@ -112,7 +113,7 @@ const CreateDealerForm = ({
 
     try {
       setSubmitting(true);
-      const res = await axios.post("http://127.0.0.1:8000/api/dealers/", payload);
+      const res = await axios.post(`${API_BASE}/api/register/company/`, payload);
 
       toast({ title: "Success", description: "Dealer created successfully" });
 
