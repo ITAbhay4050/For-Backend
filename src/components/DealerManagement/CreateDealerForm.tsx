@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { API_BASE } from "@/lib/apiconfig";
+import { API_BASE } from "../../lib/apiConfig";
 
 import { Dealer, User, UserRole, UserStatus } from "@/types";
 
