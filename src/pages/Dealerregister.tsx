@@ -57,26 +57,28 @@ const DealerRegister = () => {
   const [isEmailEditable, setIsEmailEditable] = useState(true);
   const [isPanNoEditable, setIsPanNoEditable] = useState(true);
 
-  // Fetch companies
+  // Fetch companies (with proper error handling)
   useEffect(() => {
     fetch(`${API_BASE}/api/register/company/`)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("🏢 Company List API Response:", data);
-
-        if (Array.isArray(data)) {
-          setCompanies(data);
-        } else if (data.results && Array.isArray(data.results)) {
-          setCompanies(data.results);
+      .then(async (res) => {
+        let data: any = {};
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+        if (res.ok) {
+          if (Array.isArray(data)) setCompanies(data);
+          else if (data.results && Array.isArray(data.results)) setCompanies(data.results);
+          else setCompanies([]);
         } else {
-          setCompanies([]);
+          throw new Error(data.detail || data.error || "Failed to load companies");
         }
       })
       .catch((error) => {
-        console.error("❌ Failed to load companies:", error);
         toast({
           title: "Error",
-          description: "Failed to load company list.",
+          description: error.message,
           variant: "destructive",
         });
       });
@@ -114,10 +116,14 @@ const DealerRegister = () => {
         `${API_BASE}/api/party/get-details-by-gst/?gst_no=${formData.gst_no}`
       );
 
-      if (res.ok) {
-        const data = await res.json();
-        console.log("✅ GST Data:", data);
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
 
+      if (res.ok) {
         setFormData((prev) => ({
           ...prev,
           name: data.name || "",
@@ -131,23 +137,20 @@ const DealerRegister = () => {
 
         toast({
           title: "Success",
-          description: "Dealer data fetched.",
+          description: "Dealer data fetched successfully.",
         });
       } else {
-        const errorData = await res.json().catch(() => ({}));
-        console.error("❌ GST Fetch Error:", errorData);
-
         toast({
           title: "Error",
-          description: errorData.error || "Failed to fetch dealer data.",
+          description: data.detail || data.error || "Failed to fetch dealer data.",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("❌ Network error while fetching GST data:", error);
       toast({
-        title: "Error",
-        description: "Network error while fetching dealer data.",
+        title: "Network Error",
+        description: "Unable to fetch dealer data. Please check your connection.",
         variant: "destructive",
       });
     } finally {
@@ -161,7 +164,7 @@ const DealerRegister = () => {
     if (formData.newPassword !== formData.confirmPassword) {
       toast({
         title: "Password Mismatch",
-        description: "Passwords do not match.",
+        description: "New password and confirm password do not match.",
         variant: "destructive",
       });
       return;
@@ -170,14 +173,16 @@ const DealerRegister = () => {
     try {
       const res = await fetch(`${API_BASE}/api/send-otp/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: formData.email }),
       });
 
-      const data = await res.json().catch(() => ({}));
-      console.log("📨 Send OTP Response:", data);
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
 
       if (res.ok) {
         setTempDealerData(formData);
@@ -189,7 +194,7 @@ const DealerRegister = () => {
       } else {
         toast({
           title: "Failed",
-          description: data.error || "Could not send OTP.",
+          description: data.detail || data.error || "Could not send OTP.",
           variant: "destructive",
         });
       }
@@ -197,7 +202,7 @@ const DealerRegister = () => {
       console.error("❌ OTP send error:", error);
       toast({
         title: "Network Error",
-        description: "Unable to send OTP.",
+        description: "Unable to send OTP. Please try again later.",
         variant: "destructive",
       });
     }
@@ -205,60 +210,64 @@ const DealerRegister = () => {
 
   const handleVerifyOtp = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/verify-otp/`, {
+      // Verify OTP
+      const otpRes = await fetch(`${API_BASE}/api/verify-otp/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: tempDealerData?.email,
           otp,
         }),
       });
 
-      const otpData = await res.json().catch(() => ({}));
-      console.log("🔐 Verify OTP Response:", otpData);
+      let otpData: any = {};
+      try {
+        otpData = await otpRes.json();
+      } catch {
+        otpData = {};
+      }
 
-      if (res.ok) {
-        const registerRes = await fetch(`${API_BASE}/api/register/dealer/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...tempDealerData,
-            password: tempDealerData?.newPassword,
-          }),
-        });
-
-        const registerData = await registerRes.json().catch(() => ({}));
-        console.log("📝 Dealer Register Response:", registerData);
-
-        if (registerRes.ok) {
-          toast({
-            title: "Success",
-            description: "Dealer registered successfully!",
-          });
-
-          setTimeout(() => navigate("/login"), 2000);
-        } else {
-          const errorMessage =
-            registerData.detail ||
-            registerData.email ||
-            registerData.error ||
-            "Dealer registration failed.";
-
-          toast({
-            title: "Error",
-            description: errorMessage,
-            variant: "destructive",
-          });
-        }
-      } else {
-        const errorMessage = otpData.detail || otpData.error || "OTP verification failed.";
-
+      if (!otpRes.ok) {
         toast({
           title: "Invalid OTP",
+          description: otpData.detail || otpData.error || "OTP verification failed.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Register dealer
+      const registerRes = await fetch(`${API_BASE}/api/register/dealer/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...tempDealerData,
+          password: tempDealerData?.newPassword,
+        }),
+      });
+
+      let registerData: any = {};
+      try {
+        registerData = await registerRes.json();
+      } catch {
+        registerData = {};
+      }
+
+      if (registerRes.ok) {
+        toast({
+          title: "Success",
+          description: "Dealer registered successfully!",
+        });
+        setTimeout(() => navigate("/login"), 2000);
+      } else {
+        const errorMessage =
+          registerData.detail ||
+          registerData.email ||
+          registerData.error ||
+          "Dealer registration failed.";
+
+        toast({
+          title: "Registration Failed",
           description: errorMessage,
           variant: "destructive",
         });
@@ -275,7 +284,7 @@ const DealerRegister = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-black relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -left-40 -top-40 w-80 h-80">
           <Gear className="w-full h-full text-red-500/10 gear-animation origin-center" />
         </div>
@@ -370,7 +379,9 @@ const DealerRegister = () => {
                       value={formData.name}
                       onChange={handleChange}
                       readOnly={!isNameEditable}
-                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${!isNameEditable ? "bg-gray-50 cursor-not-allowed" : ""}`}
+                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${
+                        !isNameEditable ? "bg-gray-50 cursor-not-allowed" : ""
+                      }`}
                       required
                     />
                   </div>
@@ -387,7 +398,9 @@ const DealerRegister = () => {
                       value={formData.email}
                       onChange={handleChange}
                       readOnly={!isEmailEditable}
-                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${!isEmailEditable ? "bg-gray-50 cursor-not-allowed" : ""}`}
+                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${
+                        !isEmailEditable ? "bg-gray-50 cursor-not-allowed" : ""
+                      }`}
                       required
                     />
                   </div>
@@ -404,7 +417,9 @@ const DealerRegister = () => {
                       value={formData.pan_no}
                       onChange={handleChange}
                       readOnly={!isPanNoEditable}
-                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${!isPanNoEditable ? "bg-gray-50 cursor-not-allowed" : ""}`}
+                      className={`bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl transition-all duration-200 ${
+                        !isPanNoEditable ? "bg-gray-50 cursor-not-allowed" : ""
+                      }`}
                       required
                     />
                   </div>
@@ -417,7 +432,7 @@ const DealerRegister = () => {
                     <Input
                       id="phone"
                       name="phone"
-                      type="text"
+                      type="tel"
                       value={formData.phone}
                       onChange={handleChange}
                       className="bg-white border-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl"
@@ -481,7 +496,7 @@ const DealerRegister = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="pin_code">Pin Code</Label>
+                    <Label htmlFor="pin_code">PIN Code</Label>
                     <Input
                       id="pin_code"
                       name="pin_code"
